@@ -71,7 +71,7 @@ a struggle in installing and setting up ORACEL & ORACLE SQL DEVELOPER
 
 a few tips for readibility of SQL script
 
-column alias, double quatation mark for case, space, and special characters. (do not ues single quotation mark)
+column alias, double quatation mark for upper/lower case, space, and special characters. (do not ues single quotation mark)
 
 column alias in a formula (not function), avaliavle in ORDER BY clause 
 
