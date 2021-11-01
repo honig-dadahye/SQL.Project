@@ -264,8 +264,6 @@ WHERE
 ```
 
 #### DAY 02 REVIEW.
-a struggle in installing and setting up ORACEL & ORACLE SQL DEVELOPER
-
 single vs double quotation
 
 distinct vs unique
