@@ -269,3 +269,165 @@ single vs double quotation
 distinct vs unique
 
 query plan : FROM the first, then WHERE, then SELECT, ORDER BY the last
+
+
+#### 011. 비교 연산자 배우기 (BETWEEN AND) 두 값 사이의 값들을 검색
+월급이 1000에서 3000 사이인 사원들의 이름과 월급 출력
+```sql
+SELECT
+    ename,
+    sal
+FROM
+    emp
+WHERE
+    sal BETWEEN 1000 AND 3000;
+    
+SELECT
+    ename,
+    sal
+FROM
+    emp
+WHERE
+    ( 1000 <= sal AND sal <= 3000);    
+```
+    
+월급이 1000 미만, 3000 초과인 사원들의 이름과 월급 출력
+```sql
+SELECT
+    ename,
+    sal
+FROM
+    emp
+WHERE
+    sal NOT BETWEEN 1000 AND 3000;
+    
+SELECT
+    ename,
+    sal
+FROM
+    emp
+WHERE
+    ( sal < 1000
+      OR 3000 < sal );
+```
+      
+1982년도에 입사한 사원들의 이름과 입사일 출력
+```sql
+SELECT
+    *
+FROM
+    nls_session_parameters
+WHERE
+    parameter = 'nls_date_format';
+
+SELECT
+    ename,
+    hiredate
+FROM
+    emp
+WHERE
+    hiredate BETWEEN '82/01/01' AND '82/12/31';
+```
+    
+ #### 012. 비교 연산자 배우기 (LIKE) 문자 패턴이 일치하는 행 검색
+ 이름의 첫 글자가 S로 시작하는 사원들의 이름과 월급 출력
+ ```sql
+SELECT
+    ename,
+    sal
+FROM
+    emp
+WHERE
+    ename LIKE 'S%';
+```
+    
+두번째 철자가 M인 사원들의 이름 출력
+```sql
+SELECT
+    ename
+FROM
+    emp
+WHERE
+    ename LIKE '_M%';
+```
+    
+이름에 A를 포함하고 있는 사원들의 이름 출력
+```sql
+SELECT
+    ename
+FROM
+    emp
+WHERE
+    ename LIKE '%A%';
+```
+
+#### 013. 비교 연산자 배우기 (IS NULL) null 값 검색
+커미션이 null인 사원들의 이름과 커미션을 출력
+```sql
+SELECT
+    ename,
+    comm
+FROM
+    emp
+WHERE
+    comm IS NULL;
+```    
+    
+#### 014. 비교 연산자 배우기 (IN) 여러 개의 리스트 값을 검색
+직업이 SALESMAN, ANALYST, MANAGER인 사원들의 이름, 월급, 직업을 출력
+```sql
+SELECT
+    ename,
+    sal,
+    job
+FROM
+    emp
+WHERE
+    job IN ( 'SALESMAN', 'ANALYST', 'MANAGER' );
+    
+SELECT
+    ename,
+    sal,
+    job
+FROM
+    emp
+WHERE
+    ( job = 'SALESMAN'
+      OR job = 'ANALYST'
+      OR job = 'MANAGER' );
+```      
+      
+#### 015. 논리 연산자 배우기 (AND, OR, NOT)   
+직업이 SALESMAN 이고 월급이 1200 이상인 사원들의 이름, 월급, 직업을 출력
+```sql
+SELECT
+    ename,
+    sal,
+    job
+FROM
+    emp
+WHERE
+        1200 <= sal
+    AND job = 'SALESMAN';
+```
+
+#### DAY 03. REVIEW
+두 값 사이 검색할 경우, '최소값 < < 최대값' 이 아닌 'between 최소값 and 최대값' '최소값 <= sal and sal <= 최대값'으로 작성해야 함
+
+문자열 : 입사날짜, 이름, job > single quotation mark
+
+%는 와일드 카드 ('S%')
+LIKE 연산자가 아닌 = 이퀄 연산자 사용할 경우, 와일드 카드가 아닌 %로 작용.
+'%A%' 맨 앞 또는 맨 뒤에 A가 와도 조회 가능
+
+is null : null 은 알 수 없는 값이기 때문에 =  null, != null 등 이퀄 연산자 사용 불가능
+
+산술 연산자 vs 비교 연산자 vs 논리 연산자
+
+1) 산술 연산자 :  * / + -
+
+2) 비교 연산자 : < > <= >= , != ^= <>, between and, like, in, is null  (=< =>)
+
+3) 논리 연산자 : - AND, OR, NOT
+
+
