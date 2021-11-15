@@ -431,3 +431,161 @@ is null : null 은 알 수 없는 값이기 때문에 =  null, != null 등 이�
 3) 논리 연산자 : - AND, OR, NOT
 
 
+#### 016. 대소문자 변환 함수 배우기 (UPPER, LOWER, INITCAP)
+대문자, 소문자, 첫 철자만 대문자로 출력
+
+SELECT
+    ename,
+    upper(ename),
+    lower(ename),
+    initcap(ename)
+FROM
+    emp;
+
+문자 데이터가 대문자인지 소문자인지 확실하지 않을 때
+SELECT
+    ename,
+    sal
+FROM
+    emp
+WHERE
+    lower(ename) = 'scott';
+
+
+#### 017. 문자에서 특정 철자 추출하기 (SUBSTR) 
+이름 첫 3개 철자만 출력
+
+```sql
+SELECT
+    substr('smith', 1, 3)
+FROM
+    dual;
+    
+--DUAL이라는 테이블은 SYS 사용자가 소유하는 오라클의 표준 테이블로서 오직 한 행(row)에 한 컬럼만 담고 있는 dummy 테이블로서 일시적인 산술연산이나 날짜 연산을 위하여 주로 쓰인다.
+
+ 특정 순서 철자부터 끝까지 출력
+SELECT
+    substr('smith', 2)
+FROM
+    dual;
+``` 
+
+ #### 018. 문자열의 길이를 출력하기 (LENGTH)
+ 이름을 출력하고 그 옆에 이름의 철자 개수를 출력
+ 
+ ```sql
+ SELECT
+    ename,
+    length(ename)
+FROM
+    emp;
+    
+SELECT
+    length('abcdef')
+FROM
+    dual;
+```    
+    
+#### 019. 문자에서 특정 철자의 위치 출력하기 (INSTR)
+사원이름 smith에서 알파벳 철자 M이 몇번째 자리에 있는지 출력
+
+```sql
+SELECT
+    instr('smith', 'm')
+FROM
+    dual;
+
+-- 대/소문자 구분없이 함수 출력 시 0 출력됨
+
+SELECT
+    substr('smtith@gmail.com', instr('smtith@gmail.com', '@') + 1)
+FROM
+    dual;
+```    
+
+#### 020. 문자든 숫자든 특정 철자를 다른 철자로 변경하기 (REPLACCE)
+이름과 월급을 출력하되, 숫자0을 *로 출력
+
+```sql
+SELECT
+    ename,
+    replace(sal, 0, '*')
+FROM
+    emp;
+    
+SELECT
+    ename,
+    regexp_replace(sal, '[0-3]', '*') AS salary
+FROM
+    emp;
+
+SELECT
+    replace(ename, 'S', 's')
+FROM
+    emp;
+    
+개인정보 마킹하여 출력
+SELECT
+    replace(ename, substr(ename, - 3), '***')
+FROM
+    emp;
+```    
+    
+#### 021. 특정 철자를 N개 만큼 채우기 (LPAD, RPAD)
+ 이름과 월급을 출력하는데, 월급 컬럼의 자릿수를 default 10자리로 하고 남은 자리에 *로 채워 출력
+ 
+```sql 
+SELECT
+    ename,
+    LPAD(sal, 10, '*') as salary1, RPAD(sal, 10, '*')as salary2 
+FROM 
+    emp;
+    
+SELECT
+    ename,
+    sal,
+    lpad('★', round(sal / 100), '★')
+FROM
+    emp;    
+    
+-- SQL에서 시각화 경우, LPAD(A, B, C) A가 아닌 B에 컬럼 기입하여 출력해야 함  
+-- ★ 특수문자로 '' singel quatation 사용 시 문자로 활용 가능함
+```
+
+#### 022. 특정 철자 잘라내기 (TRIM, RTRIM, LTRIM)
+철자 위치 알아내기 INSTR 위치 기준으로 잘라내기 SUBSTR 가장 끝 철자 잘라내기 TRIM
+smith에서 각각 s, h, 양쪽 s 잘라서 출력
+
+```sql
+SELECT
+    'smith',
+    ltrim('smith', 's'),
+    rtrim('smihh', 'h'),
+    trim('s' from 'smith')
+FROM
+    emp;
+    
+-- 가장 끝 철자만 잘라서 출력함.
+-- 단, the last & the 2nd last가 같은 철자일 경우, 함께 잘라서 출력됨  
+```
+
+#### 023. 반올림해서 출력하기 (ROUND)
+
+```sql
+SELECT
+    '876.567' AS 숫자,
+    round(856.567, 1)
+FROM
+    dual;
+    
+SELECT
+    sal,
+    round(sal, -1)
+FROM
+    emp;    
+
+-- 876.567은 컬럼 특성이 아닌 숫자 특성이기에 single quatation으로 표현, [숫자]는 문자열이 아닌 컬럼 특성이므로 그대로 기입 가능
+-- 단, round 함수 안에서 문자, 철자가 아닌 숫자열이므로 single quatation 안해도 됨. 컬럼도 안해도 됨.
+```
+
+#### DAY 04. REVIEW
