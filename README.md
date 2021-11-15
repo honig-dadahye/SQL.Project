@@ -1,22 +1,16 @@
 # SQL.Project
 
 ## < INTRO. SQLD 자격증 취득 >
-**강의 : 제로베이스 SQL 완주반**
-
-기간 : 2021/7/5(MON) ~ 8/20(FRI)
-
-시험일정 : 2021/9/5(SUN)
-
-시험결과 : Y
+- 강의 : 제로베이스 SQL 완주반
+- 기간 : 2021/7/5(MON) ~ 8/20(FRI)
+- 시험일정 : 2021/9/5(SUN)
+- 시험결과 : Y
 
 ## < DEV. 이론과 실전, 간극을 좁히다. > 
-**교재 : 초보자를 위한 SQL 200제, SQL 시작을 위한 최고의 입문서**
-
-기간 : 2021/10/25(MON) ~ 11/21(SUN)
-
-성장목표 : SQL 실무 시뮬레이션 & Kaggle 데이터 분석 도전
-
-증명목표 : SQL 코딩 테스트 & SQLP 자격증 취득
+- 교재 : 초보자를 위한 SQL 200제, SQL 시작을 위한 최고의 입문서
+- 기간 : 2021/10/25(MON) ~ 11/21(SUN)
+- 성장목표 : SQL 실무 시뮬레이션 & Kaggle 데이터 분석 도전
+- 증명목표 : SQL 코딩 테스트 & SQLP 자격증 취득
 
 ### PART 1 입문. SQL 첫발 내딛기
 #### 001. 테이블에서 특정 열(COLUMN) 선택하기
@@ -434,6 +428,7 @@ is null : null 은 알 수 없는 값이기 때문에 =  null, != null 등 이�
 #### 016. 대소문자 변환 함수 배우기 (UPPER, LOWER, INITCAP)
 대문자, 소문자, 첫 철자만 대문자로 출력
 
+```sql
 SELECT
     ename,
     upper(ename),
@@ -450,7 +445,7 @@ FROM
     emp
 WHERE
     lower(ename) = 'scott';
-
+```
 
 #### 017. 문자에서 특정 철자 추출하기 (SUBSTR) 
 이름 첫 3개 철자만 출력
@@ -589,3 +584,11 @@ FROM
 ```
 
 #### DAY 04. REVIEW
+**ORACLE SQl DEVELOPER Keyborad Shortcut**
+- 커밋과 롤백 F11, F12
+- 자동정렬 ctrl + F7
+- 쿼리 히스토리 창 F8
+- 일반행 주석 ctrl + / 
+  범위 주석 alt + shift + c
+- 행 잘라내기 ctrl + x , ctrl +v
+- 대소문자 변경 블럭처리 + Alt + '
