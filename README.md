@@ -585,10 +585,10 @@ FROM
 
 #### DAY 04. REVIEW
 **ORACLE SQl DEVELOPER Keyborad Shortcut**
-- 커밋과 롤백 F11, F12
-- 자동정렬 ctrl + F7
-- 쿼리 히스토리 창 F8
-- 일반행 주석 ctrl + / 
-  범위 주석 alt + shift + c
-- 행 잘라내기 ctrl + x , ctrl +v
-- 대소문자 변경 블럭처리 + Alt + '
+- 커밋과 롤백 : F11, F12
+- 자동정렬 : ctrl + F7
+- 쿼리 히스토리 창 : F8
+- 일반행 주석 : ctrl + / 
+  범위 주석  :alt + shift + c
+- 행 잘라내기 : ctrl + x , ctrl +v
+- 대소문자 변경 : 블럭처리 + Alt + '
