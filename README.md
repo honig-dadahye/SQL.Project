@@ -592,3 +592,151 @@ FROM
   범위 주석  :alt + shift + c
 - 행 잘라내기 : ctrl + x , ctrl +v
 - 대소문자 변경 : 블럭처리 + Alt + '
+
+
+#### 024. 숫자를 버리고 출력하기 (TRUNC)
+숫자 출력 시 특정 자리의 숫자를 버리고 출력
+
+```sql
+SELECT
+    '876.567' AS 숫자,
+    round(876.567, 1)
+FROM
+    dual;
+
+SELECT
+    sal,
+    round(sal, - 2)
+FROM
+    emp;
+```
+
+#### 025. 나눈 나머지 값/몫 출력하기 (MOD/FLOOR)
+```sql
+SELECT
+    mod(10, 3)
+FROM
+    dual;
+
+SELECT
+    floor(10/ 3)
+FROM
+    dual;
+```
+
+사원번호 홀짝으로 출력
+```sql
+SELECT
+    empno,
+    mod(empno, 2)
+FROM
+    emp;
+```
+
+#### 026. 날짜 간 개월 수 출력하기 (MONTHS_BETWEEN)
+이름을 출력하고, 입사 날짜부터 오늘까지 몇 달 근무했는지 출력
+
+```sql
+SELECT
+    ename,
+    round(months_between(sysdate, hiredate) ,0)
+FROM
+    emp;
+    
+SELECT
+    TO_DATE('2019-06-01', 'rrrr-mm-dd') - TO_DATE('2018-10-01', 'rrrr-mm-dd')
+FROM
+    dual;
+    
+ -- TO_DATA 문자를 날짜형 데이터로 변환, '2019-06-01'는 문자형 데이터이기에 sigle quatation 사용. 
+ -- 날짜형 데이터로 변환한 뒤 산술 연산 가능함.
+```
+
+#### 027. 개월 수 더한 날짜 출력하기 (ADD_MONTHS)
+2019년 5월 1일로부터 100달 뒤의 날짜는 어떻게 되는지 출력
+
+```sql
+SELECT
+    add_months('2019-01-01', 100)
+FROM
+    dual;
+
+SELECT
+    add_months(TO_DATE('2019-01-01', 'rrrr-mm-dd'), 100)
+FROM
+    dual;
+
+-- 꼭 날짜형으로 바꿔주지 않아도 함수 계산 가능함.
+-- 단, 산술 연산을 사용할 시, 꼭 문자형으로 날짜형 데이터로 변환해야 함.
+```
+
+#### 028. 특정 날짜 뒤에 오는 요일 날짜 출력하기 (NEXT_DAY)
+2019년 5월 22일로부터 바로 돌아올 월요일의 날짜가 어떻게 되는지 출력
+
+```sql
+SELECT
+    '2019-05-23',
+    next_day('2019-05-23', 2)
+FROM
+    dual;
+    
+
+SELECT
+    '2019-05-23',
+    next_day('2019-05-23', '월요일')
+FROM
+    dual;
+```
+
+#### 029. 특정 날짜가 있는 달의 마지막 날짜 출력하기 (LAST_DAY)
+2019년 5월 22일 해당 달의 마지막 날짜가 어떻게 되는지 출력
+
+```sql
+SELECT
+    '2019-05-22' AS 날짜,
+    last_day('2019-05-22') as "마지막 날짜"
+FROM
+    dual;
+    
+-- 컬럼 별칭 alias 사용 시, 특수문자/대소문자/공백문자 구별하려면 double quatation 써야 함.
+```
+
+#### 030. 날짜, 숫자형 데이터를 문자형으로 변환하기 (TO_CHAR)
+이름이 SCOTT인 사원의 이름과 입사요일, 월급을 출력
+
+```sql
+SELECT
+    ename,
+    to_char(hiredate, 'DAY') AS 요일,
+    to_char(sal, '999,999')
+FROM
+    emp
+WHERE
+    ename = 'SCOTT';
+    
+SELECT
+    ename,
+    EXTRACT(YEAR FROM hiredate)  AS 연도,
+    EXTRACT(MONTH FROM hiredate) AS 달,
+    EXTRACT(DAY FROM hiredate)   AS 요일
+FROM
+    emp;
+```
+
+#### 031. 문자를 날짜형으로 데이터 유형 변환하기 (TO_DATE)
+81년 11월 17일 입사한 사원의 이름, 입사일 출력
+
+```sql
+SELECT
+    ename,
+    hiredate
+FROM
+    emp
+WHERE
+    hiredate = TO_DATE('81-11-17', 'rr/mm/dd');
+    
+-- hiredate 날짜형 컬럼의 날짜 형식을 알지 못할 때, 문자 '81-11-17' 데이터를 날짜 데이터로 바꾸면 쉽게 조회 가능
+```
+
+#### DAY 05. REVIEW
+Partially confused with data types : numeric, date, character
