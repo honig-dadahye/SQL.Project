@@ -740,3 +740,193 @@ WHERE
 
 #### DAY 05. REVIEW
 Partially confused with data types : numeric, date, character
+
+#### 032. 암시적 형 변환 이해하기
+```sql
+SELECT
+    ename,
+    sal
+FROM
+    emp
+WHERE
+    sal = '3000';
+    
+-- sal은 숫자형 데이터 컬럼이나 '3000' 문자형을 조회하였어도, 오라클이 암시적으로 숫자형 = 숫자형으로 형 변화하여 출력   
+```
+
+#### 033. NULL 값 대신 다른 데이터 출력하기 (NVL, NVL2)
+이름과 커미션을 출력하되, 커미션이 NULL인 사원은 O으로 출력
+
+```sql
+SELECT
+    ename,
+    nvl(comm, 0)
+FROM
+    emp;
+```
+    
+커미션이 NULL이 아닌 사원들은 sal+comm을 출력하고, NULL 사원들은 sal 출력
+
+```sql
+SELECT
+    ename,
+    sal,
+    comm,
+    nvl2(comm, sal + comm, sal)
+FROM
+    emp;
+```
+
+#### 034.IF문을 SQL로 구현하기 (DECODE)
+부서번호가 10번이면 300, 부서번호가 20번이면 400을 나머지 부서 번호는 0을 출력
+
+```sql
+SELECT
+    deptno,
+    decode(deptno, 10, 300, 20, 400,
+           0) as 보너스
+FROM
+    emp;
+    
+SELECT
+    empno,
+    decode(mod(empno, 2), 0, '짝수', 1, '홀수',
+           0)
+FROM
+    emp;
+    
+-- if 조건, else if 조건, else 조건 (default값)
+```
+
+#### 035. IF문을 SQL로 구현하기 (CASE)
+보너스는 월급이 3000 이상이면 500을 출력, 월급이 2000 이상이고 3000보다 작으면 300을 출력, 월급이 1000 이상이고 2000보다 작으면 200을 출력, 나머지 사원들은 0을 출력
+
+```sql
+SELECT
+    ename,
+    job,
+    sal,
+    CASE
+        WHEN sal >= 3000 THEN
+            500
+        WHEN sal >= 2000 THEN
+            300
+        WHEN sal >= 1000 THEN
+            200
+        ELSE 0 END AS 보너스
+FROM
+    emp;
+    
+-- 마지막 else 조건 명시 후, end (as 보너스) 기입해야 함.   
+-- 2000 이상 3000보다 작은 경우, 굳이 3000 >= sal >= 2000 이라고 쓰지 않았음. 
+-- DECODE는 등호 비교만 가능하지만, CASE는 부등호와 등호 둘 다 가능함
+```
+
+이름, 직업, 커미션, 보너스를 출력하되, 보너스는 커미션이 NULL이면 500을 출력하고 NULL이 아니면 0을 출력
+
+```sql
+SELECT
+    ename,
+    job,
+    comm,
+    CASE
+        WHEN comm IS NULL THEN
+            500
+        ELSE
+            0
+    END AS 보너스
+FROM
+    emp;
+```
+
+#### 036. 최대값 출력하기 (MAX)
+직업이 salesman인 사원들의 직업과 최대 월급을 출력
+
+```sql
+SELECT
+    job,
+    MAX(sal)
+FROM
+    emp
+WHERE
+    job = 'SALESMAN'
+GROUP BY
+    job;
+    
+-- 여러 개의 행이 출력될 때, 최대/최소 함수는 하나의 값만 출력되기 때문에 에러 발생하여 그루핑해야 함.
+-- FROM > WHERE > GROUP BY > SELECT > ORDER BY 순으로 SQL 실행됨.
+```
+
+#### 037. 최소값 출력하기 (MIN)
+```sql
+SELECT
+    MIN(sal)
+FROM
+    emp
+WHERE
+    1 = 2;
+
+
+-- 최대/최소 함수는 그룹에서 하나의 값 출력, 즉 그룹함수는 WHERE절이 거짓이어도 결과 항상 결과를 출력함.
+-- 이처럼 함수는 no row select이 아닌 항상 결과(NULL값)를 리턴함.
+```
+
+#### 038. 평균값 출력하기 (AVG)
+NULL값을 0으로 치환해 커미션 평균 출력
+
+```sql
+SELECT
+    AVG(nvl(comm, 0))
+FROM
+    emp;
+    
+-- AVG가 아닌 SUM에서 NVL은 성능만 느려질 뿐이라 사용X
+```
+
+#### 039. 토탈값 출력하기 (SUM)
+직업과 직업별 토탈 월급을 출력하는데 직업별 토탈 월급이 높은 것부터 출력
+
+```sql
+SELECT
+    job,
+    SUM(sal) AS "토탈 월급"
+FROM
+    emp
+GROUP BY
+    job
+ORDER BY
+    "토탈 월급" DESC;
+
+SELECT
+    job,
+    SUM(sal) AS "토탈 월급"
+FROM
+    emp
+GROUP BY
+    job
+HAVING SUM(sal) >= 4000
+ORDER BY
+    "토탈 월급" DESC;
+
+-- SQL 실행순서에 따라 WHERE절에 그룸함수를 사용할 수 없어 HAVING절 사용해야 함.
+-- 오로지 ORDER BY절만 SELECT절 이후에 실행되기 떄문에, 컬럼별칭을 사용 가능함.
+```
+
+#### 040. 건수 출력하기 (COUNT)
+사원수 카운트, 전체행 카운트 출력
+
+```sql
+SELECT
+    COUNT(ename)
+FROM
+    emp;
+
+SELECT
+    COUNT(*)
+FROM
+    emp;
+```
+
+#### DAY 06. REVIEW
+a few rules based on SQL query order
+no group funtion at WHERE query
