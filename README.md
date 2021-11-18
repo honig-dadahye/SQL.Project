@@ -930,3 +930,189 @@ FROM
 #### DAY 06. REVIEW
 a few rules based on SQL query order
 no group funtion at WHERE query
+
+
+#### 041. 데이터 분석 함수로 순위 출력하기 (RANK)
+직업이 ANALYST, MANAGER인 사원들의 이름, 직업, 월급, 월급의 순위를 출력
+
+```sql
+SELECT
+    ename,
+    job,
+    sal,
+    RANK()
+    OVER(
+        ORDER BY
+            sal DESC
+    ) 월급순위
+FROM
+    emp
+WHERE
+    job IN ( 'ANALYST', 'MANAGER' );
+    
+SELECT
+    ename,
+    job,
+    sal,
+    RANK()
+    OVER( partition by job
+        ORDER BY
+            sal DESC
+    ) as 월급순위
+FROM
+    emp;    
+```
+
+#### 042. 데이터 분석 함수로 순위 출력하기 (DENSE_RANK)
+직업이 ANALYST, MANAGER인 사원들의 이름, 직업, 월급, 월급의 순위를 출력
+
+```sql
+SELECT
+    ename,
+    job,
+    sal,
+    DENSE_RANK()
+    OVER(
+        ORDER BY
+            sal DESC
+    ) 월급순위
+FROM
+    emp
+WHERE
+    job IN ( 'ANALYST', 'MANAGER' );
+```
+
+월급이 2975인 사원의 순위 출력
+```sql
+SELECT
+    DENSE_RANK(2975) WITHIN GROUP(ORDER BY sal DESC) 월급순위
+FROM
+    emp
+WHERE
+    job IN ( 'ANALYST', 'MANAGER' );
+    
+-- WITHIN GROUP 즉, 어느 그룹 이내 2975 순위가 어떻게 되는지 조회
+```
+
+#### 043. 데이터 분석 함수로 등급 출력하기 (NTILE)
+이름, 월급, 직업, 월급의 등급을 출력
+
+```sql
+SELECT
+    ename,
+    sal,
+    job,
+    NTILE(4)
+    OVER(
+        ORDER BY
+            sal DESC NULLS LAST
+    )
+FROM
+    emp;
+    
+-- 오라클에서는 null이 가장 최상값이므로, nulls last를 기입해야 함.
+```
+
+#### 044. 데이터 분석 함수로 순위의 비율 출력하기 (CUME_DIST)
+이름과 월급, 월급의 순위, 월급의 순위비율을 출력
+
+```sql
+SELECT
+    ename,
+    sal,
+    RANK() OVER(ORDER BY sal DESC),
+    CUME_DIST() OVER(ORDER BY sal DESC)
+FROM
+    emp;
+```
+
+####045. 데이터 분석 함수로 데이터를 가로로 출력하기 (LISTAGG)
+부서번호를 출력하고, 부서번호 옆에 해당 부서에 속하는 사원들의 이름 가로로 출력
+
+```sql
+SELECT
+    deptno,
+    listagg(ename, ',') within GROUP ( ORDER BY ENAME ASC )
+from emp
+group by deptno;
+
+SELECT
+    deptno,
+    LISTAGG(sal, '/') WITHIN GROUP(
+        ORDER BY
+            sal DESC
+        )
+FROM
+    emp
+GROUP BY
+    deptno;
+
+--GROUP BY절은 LISTAGG 함수를 사용하려면 필수로 기술해야 하는 절
+```
+
+#### 046. 데이터 분석 함수로 바로 전 행과 다음 행 출력하기(LAG, LEAD)
+사원번호, 이름, 월급을 출력하고 전/다음 행의 월급을 함께 출력
+
+```sql
+SELECT
+    empno,
+    ename,
+    sal,
+    lag(sal,1) over (order by sal asc) as previous,
+    lead(sal,1) over (order by sal asc) as next
+FROM
+    emp;
+
+SELECT
+    deptno,
+    empno,
+    ename,
+    sal,
+    lag(sal,1) over (partition by deptno order by sal asc) as previous,
+    lead(sal,1) over (partition by deptno order by sal asc) as next
+FROM
+    emp;
+
+-- 데이터 분석 함수의 문법 : 함수() over (order by )
+-- 데이터 분석 함수의 종류 : 순서, 순위, 가로 나열, 전/다음 행 출력
+-- partition by 추가 기입 시, GROUP BY절을 기입하지 않아도 됨. 엄밀히 따지면, GROUP BY절 기입 시, 한 변수 한 행이 나오는 거라 다른 함수임.
+```
+
+#### 047. ROW을 COLUMN로 출력하기 (SUM+DECODE)
+부서번호, 부서번호별 토탈 월급을 출력하는데, 가로로 출력
+
+```sql
+SELECT
+    SUM(decode(deptno,10,sal)) as "10",
+    sum(decode(deptno,20,sal)) as "20",
+    sum(decode(deptno,30,sal)) as "30" 
+FROM
+    emp;
+    
+-- 왜 singel이 아닌 double quatation 사용한거지..?
+```
+
+#### 048. ROW을 COLUMN로 출력하기 (PIVOT)
+부서번호, 부서번호별 토탈 월급을 Pivot 문을 사용하여 출력
+
+```sql
+SELECT
+    *
+FROM
+    (
+        SELECT
+            deptno,
+            sal
+        FROM
+            emp
+    ) PIVOT (
+        SUM ( sal )
+        FOR deptno IN ( 10, 20, 30 )
+    );
+    
+-- PIVOT함수를 사용하려면 FROM절에 필요 컬럼으로만 구성된 테이블 생성해야 함.
+```
+
+#### DAY 07. REVIEW
+MORE delay in reviewing, MORE unfamiliar with the query
+
