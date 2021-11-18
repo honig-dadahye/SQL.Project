@@ -1116,3 +1116,115 @@ FROM
 #### DAY 07. REVIEW
 MORE delay in reviewing, MORE unfamiliar with the query
 
+
+#### 049. COLUMN을 ROW로 출력하기 (UNPIVOT)
+이름별 아이템별 건수를 출력
+
+```sql
+select *
+from order2
+unpivot (건수 for 아이템 in (BICYCLE, CAMERA, NOTEBOOK));
+
+-- 값이 아니라 컬럼명/변수명이라 그런지 single quatation이 없는감..? 
+-- '건수' '아이템' 임의로 지정한 열이름, 전자는 테이블의 데이터를 세로로 출력, 후자는 테이블의 컬럼명을 세로로 출력
+```
+
+#### 050. 데이터 분석 함수로 누적 데이터 출력하기 (SUM OVER)
+직업이 ANALYST, MANAGER인 사원들의 사원번호, 이름, 월급, 월급의 누적치를 출력
+
+```sql
+SELECT
+    empno,
+    ename,
+    sal,
+    SUM(sal) OVER(ORDER BY empno ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as 누적치
+FROM
+    emp
+WHERE
+    job IN ( 'ANALYST', 'MANAGER' );
+    
+-- UNBOUNDED PRECEDING : 맨 첫번째 행, UNBOUNDED FOLLOWING : 맨 마지막 행, CURRENT ROW : 현재 행
+```
+
+#### 051. 데이터 분석 함수로 비율 출력하기 (RATIO_TO_REPORT)
+부서번호 20번인 사원들의 사원번호, 이름, 월급 출력하고, 부서 내 자신의 월급비율이 어떻게 되는지 출력
+
+```sql
+SELECT
+    empno,
+    ename,
+    sal,
+    RATIO_TO_REPORT(sal)
+    OVER() AS 월급비율
+FROM
+    emp
+WHERE
+    deptno = 20;
+
+-- 함수 문법에서 order by를 작성하지 않아도 되는 분석 함수 등장
+```
+
+#### 052. 데이터 분석 함수로 집계 결과 출력하기 (ROLL UP)
+직업과 직업별 토탈 월급 출력, 맨 마지막 행에 토탈월급 출력
+
+```sql
+SELECT
+    job,
+    SUM(sal)
+FROM
+    emp
+GROUP BY
+    ROLLUP(job);
+    
+SELECT
+    deptno,
+    job,
+    SUM(sal)
+FROM
+    emp
+GROUP BY
+    ROLLUP(deptno, job);    
+    
+-- GROUP BY ROLLUP 안에는 데이터값(sal,hiredate)의 컬럼은 들어갈 수 없음.    
+```
+
+#### 053. 데이터 분석 함수로 집계 결과 출력하기 (CUBE)
+직업,직업별 토탈 월급 출력하는데, 첫번째 행에 토탈 월급을 출력
+
+```sql
+select job, sum(sal)
+from emp
+group by cube(job);
+```
+
+#### 054. 데이터 분석 함수로 집계 결과 출력하기 (GROUPING SETS)
+부서번호와 직업, 부서번호별 토탈월급과 직업별 토탈월급, 전체 토탈월급 출력
+
+```sql
+SELECT
+    deptno,
+    job,
+    SUM(sal) AS 토탈월급
+FROM
+    emp
+GROUP BY
+    GROUPING SETS ( ( deptno ),( job ), ( ) );
+```
+
+#### 055. 데이터 분석 함수로 출력 결과 넘버링하기 (ROW_NUNBER)    
+```sql
+SELECT
+    empno,
+    ename,
+    sal,
+    ROW_NUMBER()
+    OVER(
+        ORDER BY
+            sal DESC
+    )
+FROM
+    emp;
+```
+
+#### DAY 08.REVIEW
+Recap! Distinction between what i may know and what i really know
