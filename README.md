@@ -1228,3 +1228,140 @@ FROM
 
 #### DAY 08.REVIEW
 Recap! Distinction between what i may know and what i really know
+
+#### 056. 출력되는 행 제한하기 (ROWNUM)
+사원번호, 이름, 직업, 월급을 상단 5개 행만 출력
+
+```sql
+SELECT
+    empno,
+    ename,
+    job,
+    sal
+FROM
+    emp
+WHERE
+    ROWNUM <= 5;
+    
+-- ROWNUM은 (*)로 검색해서는 출력되지 않는 감춰진 컬럼, 출력되는 행에 번호를 부여하는 컬럼
+```
+
+#### 057. 출력되는 행 제한하기 (SIMPLE TOP-N QUERIES)
+월급이 높은 사원순으로 사원번호, 이름, 직업, 월급 4개의 행으로 제한해서 출력
+
+```sql
+SELECT
+    empno,
+    ename,
+    job,
+    sal
+FROM
+    emp
+ORDER BY
+    sal DESC
+FETCH FIRST 4 ROWS ONLY;
+
+SELECT
+    empno,
+    ename,
+    job,
+    sal
+FROM
+    emp
+ORDER BY
+    sal DESC
+FETCH FIRST 2 ROWS WITH TIES
+
+SELECT
+    empno,
+    ename,
+    job,
+    sal
+FROM
+    emp
+ORDER BY
+    sal DESC
+OFFSET 3 ROWS;
+```
+
+#### 058. 여러 테이블의 데이터를 조인해서 출력하기 (EQUI JOIN)
+사원 테이블과 부서 테이블을 조인하여 이름, 부서 위치를 출력
+
+```sql
+SELECT
+    ename,
+    loc
+FROM
+    emp,
+    dept
+WHERE
+    emp.deptno = dept.deptno;
+    
+-- 조인 조건 활용 시 테이블 별칭을 사용하는 이유 : 어떤 테이블의 컬럼을 츨력할지 몰라 에러가 남. 테이블 별칭을 접두어로 붙여줌 
+```
+
+#### 059. 여러 테이블의 데이터를 조인해서 출력하기 (NON EQUI JOIN)
+사원 테이블과 급여 등급 테이블을 조인하여 이름, 월급, 급여 등급을 출력
+
+```sql
+SELECT
+    e.ename,
+    e.sal,
+    s.grade
+FROM
+    emp      e,
+    salgrade s
+WHERE
+    sal BETWEEN s.losal AND s.hisal;
+```
+
+#### 060. 여러 테이블의 데이터를 조인해서 출력하기 (OUTER JOIN)
+사원 테이블과 부서 테이블을 조인하여 이름, 부서 위치 출력 (BOSTON도 함께 출력)
+
+```sql
+SELECT
+    e.ename,
+    d.loc
+FROM
+    emp  e,
+    dept d
+WHERE
+    e.deptno (+) = d.deptno;
+```
+
+#### 061. 여러 테이블의 데이터를 조인해서 출력하기 (SELF JOIN)
+사원 테이블 자기 자신과 조인하여 이름, 직업, 관리자 이름, 관리자 직업을 출력
+
+```sql
+SELECT
+    e.ename,
+    e.job,
+    d.ename,
+    d.job
+FROM
+    emp e,
+    emp d
+WHERE
+    e.mgr = d.empno; 
+ ```
+ 
+ #### 062. 여러 테이블의 데이터를 조인해서 출력하기 (ON절)
+ 이름, 직업, 월급, 부서 위치 출력
+ 
+ ```sql
+ SELECT
+    e.ename,
+    e.job,
+    e.sal,
+    d.loc
+FROM
+         emp e
+    JOIN dept d ON ( e.deptno = d.deptno );
+ 
+-- 오라클 EQUI JOIN vs ANSI/ISO SQL ON절
+-- ㄴ 오라클 조인 : EQUI JOIN, NON EQUI JOIN, OUTER JOIN, SELF JOIN
+-- ㄴ ANSI/ISO SQL : ON절, LEFT/RIGHT/FULL OUTER JOIN, USING, NATURAL, CROSS
+```
+
+#### DAY 09.REVIEW
+Deeply and Sincerely understanding ORACLE JOIN vs ANSI/ISO SQL JOIN
