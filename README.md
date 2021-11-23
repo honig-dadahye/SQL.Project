@@ -1539,3 +1539,186 @@ WHERE
 
 #### DAY 10. REVIEW
 SQL TREADMILL, willing to work on it  
+
+
+#### 071. 서브쿼리 사용하기 (단일행 서브쿼리)
+특정 쿼리에서 검색 값(1개의 행)을 받아 다른 쿼리에서 검색
+JONES보다 더 많은 월급을 받는 사원들의 이름과 월급 출력
+```sql
+SELECT
+    ename,
+    sal
+FROM
+    emp
+WHERE
+    sal >= (SELECT
+                sal
+            FROM
+                emp
+            WHERE
+                ename = 'JONES');
+```
+
+#### 072. 서브쿼리 사용하기 (다중행 서브쿼리)
+특정 쿼리에서 검색 값(N개의 행)을 받아 다른 쿼리에서 검색
+직업이 SALESMAN인 사원들과 같은 월급을 받는 사원들의 이름과 월급을 출력
+```sql
+SELECT
+    ename,
+    sal
+FROM
+    emp
+WHERE
+    sal IN (SELECT
+                sal
+            FROM
+                emp
+            WHERE
+                job = 'SALESMAN');
+
+-- 다중행을 리턴할 때 = 이퀄 연산자가 아니라 in 연산자를 활용해야 함
+```
+
+#### 073. 서브쿼리 사용하기 (WHERE절 NOI IN)
+관리자가 아닌 사원들의 이름과 월급, 직업을 출력
+```sql
+SELECT
+    ename,
+    sal,
+    job
+FROM
+    emp
+WHERE
+    empno NOT IN (
+            SELECT
+                mgr
+            FROM
+                emp
+            WHERE
+                mgr IS NOT NULL);
+                
+-- 서브쿼리에 null이 리턴되는 경우, 메인 쿼리 결과 출력되지 않음
+```
+
+#### 074. 서브쿼리 사용하기 (WHERE절 EIXSTS와 NOI EXISTS)
+사원이 존재하는 부서의 부서번호, 부서명, 부서위치를 출력
+```sql
+SELECT
+    deptno,
+    dname,
+    loc
+FROM
+    dept d
+WHERE
+    EXISTS (
+        SELECT
+            deptno
+        FROM
+            emp e
+        WHERE
+            e.deptno = d.deptno);
+ 
+-- WHERE절에 따로 컬럼명 기술없이 바로 EXISTS, NOT EXISTS 기술
+-- 부서테이블에도 사원테이블에도 있는 부서번호를 검색 조건으로 작성해야 함.
+-- 오답
+SELECT
+    deptno,
+    dname,
+    loc
+FROM
+    dept d
+WHERE
+    EXISTS (
+        SELECT
+            deptno
+        FROM
+            emp e
+        WHERE
+            e.ename is not null);
+```
+
+#### 075. 서브 쿼리 사용하기 (HAVING절)      
+직업과 직업별 토탈 월급 출력, 직업이 SALESMAN 사원들의 토탈월급보다 큰 값들만 출력
+```sql
+SELECT
+    job,
+    SUM(sal)
+FROM
+    emp
+GROUP BY
+    job
+HAVING
+    SUM(sal) >= (
+        SELECT
+            SUM(sal)
+        FROM
+            emp
+        WHERE
+            job = 'SALESMAN'
+    );
+    
+-- SQL 실행순서로 인해 그룹함수를 이용한 쿼리에서는 WHERE절이 아닌 HAVING절에 서브쿼리 작성해야 함
+-- GORUP BY절 제외한 'SELECT문'의 모든 5가지 절(SELECT, FROM, WHERE, HAVIGN, ORDER BY)에서 서브쿼리 사용 가능.
+```
+
+#### 076. 서브쿼리 사용하기 (FROM 절 IN LINE VIEW)
+이름과 월급, 순위를 출력하는데 순위가 1위인 사원만 출력
+```sql
+SELECT
+    a.ename,
+    a.sal,
+    a.순위
+FROM
+    (
+        SELECT
+            ename,
+            sal,
+            RANK()
+            OVER(
+                ORDER BY
+                    sal DESC
+            ) AS 순위
+        FROM
+            emp
+    ) a
+WHERE
+    a.순위 = 1;
+
+-- 윈도우 함수/분석 함수는 메인쿼리의 WHERE절에서 사용할 수 없어, 서브쿼리에서 먼저 실행해야 함.
+-- 서브쿼리 내에서도 WHERE절에서 윈도우 함수/분석 함수를 활용해 조회할 수 없기에, 메인쿼리에서 새로운 컬럼별칭 활용해 1위조건 검색해야 함.
+-- 즉, 윈도우 함수/분석 함수는 메인쿼리, 서브쿼리의 WHERE절에서 사용할 수 없기에, 서브쿼리에서 생성한 컬럼별칭으로 메인쿼리에서 1위조건 검색해야 함.
+```
+
+#### 077. 서브 쿼리 사용하기 (SELECT절 스칼라 서브쿼리 단.일.값 조회)
+직업이 SALESMAN인 사원들의 이름과 월급 출력하되, 직업이 SALESMAN인 사원들의 최대 월급과 최소 월급도 같이 출력
+```sql
+SELECT
+    ename,
+    sal,
+    (
+        SELECT
+            MAX(sal) AS 최대월급
+        FROM
+            emp
+        WHERE
+            job = 'SALESMAN'
+    ),
+    (
+        SELECT
+            MIN(sal) AS 최소월급
+        FROM
+            emp
+        WHERE
+            job = 'SALESMAN'
+    )
+FROM
+    emp
+WHERE
+    job = 'SALESMAN';
+
+-- 스칼라 서브 쿼리에서는 단일값 조회 가능함. 다중행 or 여러 컬럼 리턴은 불가능함    
+-- 2~4행에서 메모리에 올려둔 최대월급, 최소월급을 재출력하는 것으 서브 쿼리 캐싱이라고 함.    
+```
+
+#### DAY 11. REVIEW 
+FINALLY, sloving the pain of the neck
