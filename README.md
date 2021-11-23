@@ -1365,3 +1365,177 @@ FROM
 
 #### DAY 09.REVIEW
 Deeply and Sincerely understanding ORACLE JOIN vs ANSI/ISO SQL JOIN
+
+
+#### 063. 여러 테이블의 데이터를 조인해서 출력하기 (WHERE절 대신 USING절)
+이름, 직업, 월급, 부서 위치 출력
+
+```sql
+SELECT
+    e.ename,
+    e.job,
+    e.sal,
+    d.loc
+FROM
+         emp e
+    JOIN dept d USING ( deptno );
+
+-- 테이블명, 테이블 별칭 없이 괄호로 조인 컬럼만 기술
+-- EQUI JOIN의 WHERE절에서는 동일 컬럼에 꼭 테이블명을 접두어로 붙여줘야 함
+```
+
+#### 064. 여러 테이블의 데이터를 조인해서 출력하기 (NATURAL JOIN)
+이름, 직업, 월급과 부서 위치 출력
+
+```sql
+SELECT
+    e.ename,
+    e.job,
+    e.sal,
+    d.loc
+FROM
+         emp e
+    NATURAL JOIN dept d;
+
+-- 오라클이 동일 컬럼을 알아서 찾아 암시적으로 조인 수행
+-- 단, WHERE절에서 검색 조건 사용 시, 동일 컬럼은 절대 테이블명, 테이블 별칭없이 작성해야 함.
+-- EQUI JOIN의 WHERE절에서는 동일 컬럼에 꼭 테이블명을 접두어로 붙여줘야 함
+```
+
+#### 065. 여러 테이블의 데이터를 조인해서 출력하기 (LEFT/RIGHT OUTER JOIN)
+EQUI JOIN으로 조인이 안되는 결과를 포함해 이름, 직업, 월급, 부서위치를 출력
+
+```sql
+SELECT
+    e.ename,
+    e.job,
+    e.sal,
+    d.loc
+FROM
+    emp  e
+    RIGHT OUTER JOIN dept d ON (e.deptno = d.deptno);
+    
+SELECT
+    e.ename,
+    e.job,
+    e.sal,
+    d.loc
+FROM
+    emp  e, dept d
+WHERE e.deptno (+) = d.deptno;
+
+-- 오라클 OUTER JOIN과 1999 ANSI/ISO RIGHT OUTER JOIN 차이, 먼저 머릿속으로 벤다이어그램을 그려볼 것
+```
+
+#### 066. 여러 테이블의 데이터를 조인해서 출력하기 (FULL OUTER JOIN)
+이름, 직업, 월급, 부서 위치를 출력
+
+```sql
+SELECT
+    e.ename,
+    e.job,
+    e.sal,
+    d.loc
+FROM
+    emp  e
+    FULL OUTER JOIN dept d ON ( e.deptno = d.deptno );
+
+-- 오라클에서는 RIGHT OUTER JOIN, LEFT OUTER JOIN 동시에 수행하고픈 경우 UNION(중복제거, 내림차순 정렬)을 수행해야 함
+-- 테이블, 컬럼, 절, 연산자, 분석함수 등 SQL 언어적 특성 개념을 갖춰가는 중
+```
+
+#### 067. 집합 연산자로 데이터를 위아래로 연결하기 (UNION ALL)
+부서번호와 부서번호별 토탈 월급을 출력
+
+```sql
+SELECT
+    deptno,
+    SUM(sal)
+FROM
+    emp
+GROUP BY
+    deptno
+UNION ALL
+SELECT
+    to_number(NULL),
+    SUM(sal)
+FROM
+    emp;
+
+-- 컬럼 갯수, 데이터 타입을 맞춰 주기 위해 to_number(null), null as 컬럼명 기입
+-- ORDER BY절은 제일 아래쪽 쿼리에만 작성 가능함.
+```
+
+#### 068. 집합 연산자로 데이터를 위아래로 연결하기 "중복제거 & 내림차순 정렬" (UNION)
+부서 번호와 부서 번호별 토탈 월급 출력
+
+```sql
+SELECT
+    deptno,
+    SUM(sal)
+FROM
+    emp
+GROUP BY
+    deptno
+UNION
+SELECT
+    null as deptno,
+    SUM(sal)
+FROM
+    emp;
+```
+
+#### 069. 집합 연산자로 데이터의 교집합을 출력하기 "중복제거 & 내림차순 정렬" (INTERSECT)
+사원명, 월급, 직업, 부서번호를 출력하되 부서번호 10번, 20번 사원들과 20번, 30번 사원들의 교집합 출력
+
+```sql
+SELECT
+    ename,
+    sal,
+    job,
+    deptno
+FROM
+    emp
+WHERE
+    deptno IN ( '10', '20' )
+INTERSECT
+SELECT
+    ename,
+    sal,
+    job,
+    deptno
+FROM
+    emp
+WHERE
+    deptno IN ( '20', '30' );
+```
+    
+#### 070. 집합 연산자로 데이터의 차이를 출력하기 "중복제거 & 내림차순 정렬" (MINUS)
+사원명, 월급, 직업, 부서번호를 출력하되 부서번호 10번, 20번 사원들과 20번, 30번 사원들의 차이 출력
+
+```sql
+SELECT
+    ename,
+    sal,
+    job,
+    deptno
+FROM
+    emp
+WHERE
+    deptno IN ( '10', '20' )
+MINUS
+SELECT
+    ename,
+    sal,
+    job,
+    deptno
+FROM
+    emp
+WHERE
+    deptno IN ( '20', '30' );
+    
+-- "중복제거 & 내림차순 정렬" 할 필요가 없다면 UNOIN ALL 집합 연산자를 통해 검색 성능을 높일 수 있음
+```
+
+#### DAY 10. REVIEW
+SQL TREADMILL, willing to work on it  
