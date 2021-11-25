@@ -1722,3 +1722,108 @@ WHERE
 
 #### DAY 11. REVIEW 
 FINALLY, sloving the pain of the neck
+
+#### 078. 데이터 입력하기 (INSERT문)
+사원번호 2812, 사원이름 JACK, 월급 3500, 입사일 2019년 6월 5일, 직업 ANALYST
+```sql
+INSERT
+    INTO emp (
+        empno,
+        ename,
+        sal,
+        hiredate,
+        job)
+values ( 2812, 'JACK', 3500, TO_DATE('2019/06/05', 'RRRR/MM/DD'),'ANALYST');
+
+
+INSERT
+    INTO emp
+values ( 2812, 'JACK','ANALYST', null, TO_DATE('2019/06/05', 'RRRR/MM/DD'), 3500, null, 20);
+
+INSERT
+    INTO emp
+values ( 2812, 'JACK','ANALYST', '', TO_DATE('2019/06/05', 'RRRR/MM/DD'), 3500, '', 20);
+
+-- DML문(Data Multipulation Language) : INSERT INTO, UPDATE SET, DELETE FROM WHERE, MERGE INTO 
+```
+
+#### 079. 데이터 수정하기 (UPDATE문)
+SCOTT의 월급은 3200으로 수정
+```sql
+UPDATE emp
+SET
+    sal = 3200
+WHERE
+    ename = 'SCOTT';
+
+-- 데이터를 수정하는 UPDATE문은 모든 절에서 서브 쿼리 작성이 가능함
+```
+
+#### 080. 데이터 삭제하기 (DELETE, TRUNCATE, DROP문)
+SCOTT 행 데이터 삭제
+```sql
+DELETE FROM emp
+where ename = 'SCOTT';
+
+-- DELETE문 : 저장 공간/구조 남김, 취소/플래쉬백 가능 > DML문
+-- TRUNCATE문 : 저장 공간 삭제/ 구조 남김(데이터 삭제하지만 테이블 구조 남김), 취소/플래쉬백 불가능(속도 빠름) > DDL문
+-- DROP문 : 저장 공간/구조 삭제, 취소 불가능/플래쉬백 가능(테이블 복구 가능) > DDL문
+--- DDL문(DATA Definition Language)은 암시적으로 COMMIT 발생, CREATE/ALTER/DROP/TRUNCATE/RENAME
+```
+
+#### 081. 데이터 저장 및 취소하기 (COMMIT or ROLLBACK)
+SCOTT의 사원번호, 월급, 부서번호를 입력. 월급을 4000으로 변경했다고 취소
+```sql
+insert into emp (empno, sal, deptno, ename)
+values (1122, 3000, 20, 'SCOTT');
+
+commit;
+
+update emp set sal = 4000
+where ename = 'SCOTT';
+
+ROLLBACK;
+
+-- TCL문(Transaction Control Language)문 데이터베이스에 영구히 반영. COMMIT/ROLLBACK/SAVEPOINT
+```
+
+#### 082. 데이터 입력, 수정, 삭제 한번에 하기(MERGE)
+사원 테이블에 부서 위치 컬럼 추가하고, 부서 테이블을 이용하여 사원의 부서위치 값 갱신
+```sql
+MERGE INTO emp e
+USING dept d
+ON( e.deptno =d.deptno)
+WHEN MATCHED THEN
+UPDATE SET e.loc= d.loc
+WHEN NOT MATCHED THEN
+INSERT (e.empno, e.deptno, d.loc) VALUES (1111, d.deptno, d.loc)
+
+-- TARGET 테이블과 SOURCE 테이블을 통합 시, 데이터 입력/수정/삭제 한번에 가능
+```
+
+#### 083. 락(LOCK)이해하기
+데이터 일관성을 유지하기 위해 같은 데이터를 동시에 갱신할 수 없도록 LOCK!
+```sql
+-- DDL문은 암시적으로 COMMIT 수행하는 반면, DML문은 데이터 갱신 시 COMMIT이나 ROLLBACK을 수행하지 않으면 해당 행 ROCK!
+-- 관련 행 전체를 잠그기 때문에, 특정 컬럼이 아닌 전체 컬럼들의 데이터 변경 못하고 WAITING
+-- 터미널 2창에서 데이터 변경된 소식을 터미널 1창에서 모를 수도 있어서, 데이터 일관성이 깨질 수도 있어 ROCK!
+```
+
+#### 084. 검색하는 행의 락(ROCK) 걸기 (SELECT FOR UPDATE)
+JONES의 이름과 월급, 부서번호를 조회/검색하는 동안 다른 세션/터미널 창에서 JONES의 데이터 갱신(수정,삭제 등)하지 못하도록 ROCK!
+```sql
+SELECT
+    ename,
+    sal,
+    deptno
+FROM
+    emp
+WHERE
+    ename = 'JONES'
+FOR UPDATE;
+
+-- 조회/검색 중인 세션/터미널 창에서 COMMIT이 수행되어야, 다른 세션/터미널 창에서 데이터 갱신이 가능함
+```
+
+#### DAY 12. REVIEW
+Beyond writing a complex SQL query, deeply understanding how it works 
