@@ -1827,3 +1827,160 @@ FOR UPDATE;
 
 #### DAY 12. REVIEW
 Beyond writing a complex SQL query, deeply understanding how it works 
+
+
+#### 085. 서브 쿼리를 사용하여 데이터 입력하기 (INSERT INTO)
+emp 테이블 구조를 그대로 복제한 emp2 테이블에 부서번호가 10번인 사원들의 사원번호, 이름, 월급, 부서번호 출력
+```sql
+INSERT INTO emp2 (empno, ename, sal, deptno)
+select e.empno, e.ename, e.sal, e.deptno
+from emp e
+where e.deptno = 10;
+
+-- VALUES절 대신 서브 쿼리문 기술
+-- 기본 INSERT문은 한번에 하나의 행만 데이터 입력 가능함
+-- CREATE TABLE문은 테이블 구조만 생성하고 데이터 입력X
+-- WHERE 1=1 : 제외조건없이 모든 결과값 리턴, WHERE 1=2 : 아무 결과도 리턴 X
+```
+
+#### 086. 서브 쿼리를 사용하여 데이터 수정하기 (UPDATE SET)
+직업이 SALESMAN인 사원들의 월급을 ALLEN의 월급으로 변경
+```sql
+UPDATE emp
+SET
+    sal = (
+        SELECT
+            sal
+        FROM
+            emp
+        WHERE
+            ename = 'ALLEN')
+WHERE
+    job = 'SALESMAN';
+    
+-- SET절 컬럼명 = '값' 대신 서브 쿼리문 기술, 이때 SET (컬럼명1, 컬럼명2) = (서브쿼리문)을 통해 여러개의 컬럼들을 기술하여 한번에 갱신
+-- UPDATE문의 모든 구절(UPDATE, SET, WHERE절)에 서브쿼리 사용 가능
+```
+
+#### 087. 서브 쿼리를 사용하여 데이터 삭제하기 (DELETE FROM)
+SCOTT보다 더 많은 월급을 받는 사원들을 삭제
+```sql
+DELETE FROM emp
+WHERE
+    sal > (
+        SELECT
+            sal
+        FROM
+            emp
+        WHERE
+            ename = 'SCOTT');
+            
+월급이 해당 사원이 속한 부서 번호의 평균 월급보다 크면 삭제
+
+DELETE FROM emp e
+WHERE
+    e.sal > (
+        SELECT
+            AVG(m.sal)
+        FROM
+            emp m
+        WHERE
+            e.deptno = m.deptno);
+            
+-- 특정 행에서 부서번호를 서브 쿼리의 m.deptno에 넣고 평균 월급 리턴, 메인 쿼리문 WHERE절 검색조건에 맞으면 삭제
+```
+
+#### 088. 서브 쿼리를 사용하여 데이터 합치기 (MERGE INTO, USING ON, WHEN MATCHED, UPDATE/INSERT)
+부서테이블에 숫자형으로 SUMSAL(부서 번호별 토탈월급) 추가, 이후 사원 테이블을 이용하여 SUMSAL 컬럼의 데이터를 부서 테이블의 부서 번호별 토탈 월급으로 갱신
+```sql
+ALTER TABEL dept
+ADD sumsla mumber(10);
+-- 데이터 입력없이 우선적으로 컬럼 추가, 소스테이블의 함수 데이터값을 새로 생성한 컬럼에 입력할 예정
+
+MERGE INTO dept d USING (   SELECT
+                                SUM(sal) AS sumsal
+                            FROM
+                                emp
+                            GROUP BY
+                                deptno) as v
+ON d.deptno = v.deptno
+WHEN MATCHED
+UPDATE SET
+    d.sumsal = v.sumsal;
+-- 타겟 테이블은 dept d, 소스 테이블은 emp e, 소스 테이블에서 sumsal 컬럼만 추출한 테이블 v 
+
+UPDATE dept d
+SET d.sumsal = (select sum((sal) fro, emp WHERE e.deptno = d.deptno);
+```
+
+#### 089. 계층형 질의문으로 서열을 주고 데이터 출력하기
+사원이름, 월급, 직업 출력하되 사원들 간의 서열(레벨)을 같이 출력
+```sql
+SELECT
+    ename,
+    level,
+    sal,
+    job
+FROM
+    emp
+START WITH
+    ename = 'KING'
+CONNECT BY
+    PRIOR empno = mgr;
+
+-- 트리 구조에서 노드(항목) / 레벨(계층) / 루트(최상의 노드) / 부모(상위노드) / 자식(하위노드)
+-- START WITH 절에서 루트(최상위) 노드 데이터 지정
+-- CONNECT BY 절에서 부모 노드와 자식 노드 간의 관계 지정, 순방향 전개 : prior 자식 = 부모, 부모 = prior 자식
+```
+
+#### 090. 계층형 질의문으로 서열을 주고 데이터 출력하기 (전개 과정 중 제외 출력)
+BLAKE와 BLAKE의 팀원 모두(직속 부하들) 제외하여 출력
+```sql
+SELECT
+    ename,
+    level,
+    sal,
+    job
+FROM
+    emp
+START WITH
+    ename = 'KING'
+CONNECT BY
+    PRIOR empno = mgr AND ename != 'BLAKE';
+
+-- CONNECT BY절에서 부모, 자식 노드 관계 지정 시, BLAKE 제외하면 BLAKE 사원번호를 MGR 번호로 갖는 직속 부하들은 모두 출력 X
+```
+
+#### 091. 계층형 질의눔으로 서열을 주고 데이터 출력하기 (ORDER SIBLINGS BY절)
+사원이름, 월급, 직업을 서열과 같이 출력하되, 서열 순서 유지하며 월급 높은 사원부터 정렬
+```sql
+SELECT
+    ename,
+    level,
+    sal,
+    job
+FROM
+    emp
+START WITH
+    ename = 'KING'
+CONNECT BY
+    PRIOR empno = mgr
+ORDER SIBLINGS BY sal desc;
+```
+
+#### 092. 계층형 질의문으로 서열을 주고 데이터 출력하기 (SYS_CONNECT_BY_PATH 함수)
+서열 순서대로 사원이름을 가로로 출력
+```sql
+SELECT
+    ename,
+    sys_connect_by_path(ename, ',') AS path
+FROM
+    emp
+START WITH
+    ename = 'KING'
+CONNECT BY
+    PRIOR empno = mgr;
+```
+
+#### DAY 13. REVIEW
+Consistently remind why I develop SQL analytics skill, imagine specifically business case
