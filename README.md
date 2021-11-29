@@ -1984,3 +1984,120 @@ CONNECT BY
 
 #### DAY 13. REVIEW
 Consistently remind why I develop SQL analytics skill, imagine specifically business case
+
+
+#### 093. 일반 테이블 생성하기 (CREATE TABLE)
+사원번호, 이름, 월급, 입사일을 저장할 수 있는 테이블 생성 (데이터 입력 X)
+```sql
+CREATE TABLE emp01
+( empno NUMBER(10)
+  ename varchar2 (10) 
+  sal number(10, 2) 
+  hiredate date);
+  
+-- 테이블 생성 시, 테이블명/컬럼명은 반드시 문자로 시작/30자 이하/대소문자 숫자 포함 가능/특수문자 $_#
+-- number(10,2) : 전체 10자리 숫자 허용하되, 그 중 소수점 2자리 허용
+-- varchar2(10) : 알파벳 철자 10개 포함. 가변 길이 문자 데이터 유형 vs 고정 길이 문자 데이터 유형 CHAR
+-- date 다음에 길이 작성하지 않음.
+```
+
+#### 094. 임시 테이블 생성하기 (CREATE TEMPORARY TABLE)
+사원번호, 이름, 월급을 저장할 수 있는 테이블 생성, COMMIT할 때까지만 데이터 저장
+```sql
+CREATE GLOBAL TEMPORARY TABLE emp02
+( empno NUMBER(10)
+  ename varchar2(10)
+  sal number(10,2))
+  ON COMMIT DELETE ROWS;  
+  
+-- GLOBAL TEMPORARY '임시' 테이블임을 명시함.
+-- ON COMMIT DELETE ROWS : commit할 때까지만 임시테이블에 입력한 데이터 보관
+-- ON COMMIT PRESERVE ROWS : 세션이 종료될 때까지만 임시테이블에 입력한 데이터 보관
+```
+
+#### 095. 복잡한 쿼리를 단순하게 하기 (CREATE VIEW AS)
+직업이 SALESMAN인 사원들의 사원번호, 이름, 월급, 직업, 부서번호를 출력
+```sql
+CREATE VIEW emp_view AS
+    SELECT
+        empno,
+        ename,
+        sal,
+        job,
+        deptno
+    FROM
+        emp
+    WHERE
+        job = 'SALESMAN';
+        
+-- CREATE VIEW 테이블명 : view 테이블 생성하지만, 데이터 출력 결과를 보여주진 않음.
+-- VIEW 테이블은 보안상 공개하면 안되는 데이터(커미션 등) 제외하고 테이블 데이터를 보여줌.
+-- VIEW는 단순히 테이블을 바로보는 객체이기 때문에 수정 가능.(UPDATE문 실행 시, emp_view 테이블 갱신하면 emp 테이블도 갱신됨) 
+```
+
+#### 096. 복잡한 쿼리를 단순하게 하기 (CREATE VIEW AS)
+부서 번호와 부서 번호별 평균 월급을 출력하는 VIEW 생성
+```sql
+CREATE VIEW emp_view2 AS
+    SELECT
+        deptno,
+        round(AVG(sal)) 평균월급
+    FROM
+        emp
+    GROUP BY
+        deptno;
+
+-- VIEW 쿼리문에 함수, 그룹 함수 사용 시 꼭 컬럼 별칭을 사용해야 함. 
+-- 해당 VIEW 테이블을 복합 VIEW라고 하며, 단순하게 쿼리 작성할 수 있으나 수정 불가능 할 수 있음.       
+```
+
+#### 097. 데이터 검색 속도를 높이기 (CREATE INDEX ON)
+월급을 조회할 때 검색 속도를 높이기 위해 월급에 인덱스 생성
+```sql
+CREATE INDEX emp_sal 
+ON emp(sal);
+
+-- 인덱스명 : 테이블명_컬럼명, 지정문법 : ON 테이블명(컬럼명)
+-- 인덱스는 검색속도를 높이는 데이터 베이스 객체(OBJECT). FULL SCAN 없이 인덱스의 ROWID를 통해 INDEX SCAN
+-- ROWID는 데이터가 위치가 행의 물리적 주소로 인덱스 테이블의 ROWID 컬럼값으로 구성됨.
+```
+
+#### 098. 절대로 중복되지 않는 번호 만들기 (CREATE SEQUENCE)
+숫자 1번부터 100까지 출력하는 시퀀스 생성
+```sql
+CREATE SEQUENCE seq01
+START WITH 1
+INCREMENT BY 1
+MAXVALUE 100
+NOCYCLE;
+
+-- 신규 사원번호 생성 시, 사원번호 중 가장 큰 수 조회 후, 더 큰 수를 데이터 입력하기 보단 SEQUENCE 활용
+-- SEQUENCE는 데이터 베이스 객체(OBJECT)
+-- 생성한 시퀀스 활용하여 데이터 입력 시, INSERT INTO emp02 VALUES(seq01.NEXTVAL, 값, 값)
+```
+
+#### 099. 실수로 지운 데이터 복구하기 (FLASHBACK QUERY)
+커밋 후 백업을 복구하지 않고 과거 시점의 데이터를 '조회'하는 것 : AS OF TIMESTAMP, 골든타임은 15분
+```sql
+SELECT
+    *
+FROM
+    emp
+as of timestamp ( systimestam - interval '5' mintute)
+where ename = 'KING';
+```
+
+#### 100. 실수로 지운 데이터 복구하기 (FLASHBACK TABLE)
+커밋 후 과거 시점의 데이터를 '복구'하는 것 : TO TIMESTAMP, 골든타임은 15분
+```sql
+ALTER TABLE emp enable row movemetn;
+flashback table emp 
+to timestamp ( systimestam - interval '5' mintute);
+
+-- 플래시백 전, 플래시백이 가능한 상태로 변경 : ALTER TABLE 테이블명 ENABLE ROW MOVEMENT
+-- 플래시백 후, COMMIT해야 변경된 상태가 데이터베이스에 영구히 반영됨
+-- 단, DROP 제외 DDL문, DCL문은 암시적으로 자동 COMMIT 되므로, FLASHBACK 에러 발생
+```
+
+#### DAY 14. REVIEW
+The very unfamiliar chapter.FLASHBACK
