@@ -2101,3 +2101,129 @@ to timestamp ( systimestam - interval '5' mintute);
 
 #### DAY 14. REVIEW
 The very unfamiliar chapter.FLASHBACK
+
+
+#### 101. 실수로 지운 데이터 복구하기 (FLASHBACK DROP)
+DROP된 사원 테이블을 휴지통에서 복원
+```sql
+FLASHBACK TABLE emp TO BEFORE DROP;
+
+FLASHBACK TABLE emp TO BEFORE DROP RENAME TO emp2;
+
+-- 테이블을 DROP한 경우 테이블이 휴지통(USER_RECYBLEBIN)에 들어가게 됨
+-- 커밋 후 백업을 복구하지 않고 과거 시점의 데이터를 '조회'하는 것 : AS OF TIMESTAMP, 골든타임은 15분
+-- 커밋 후 과거 시점의 데이터를 '복구'하는 것 : TO TIMESTAMP, 골든타임은 15분 이후 commit 수행
+```
+
+#### 102. 실수로 지운 데이터 복구하기 (FLASHBACK VERSION QUERY)
+사원 테이블의 데이터가 과거 특정 시점부터 지금까지 어떻게 변경되어 왔는지 이력 정보를 출력
+```sql
+SELECT ename, sal, versions_starttime, versions_endtime, versions_operation
+from emp
+versions between timestamp
+ to_timestamp ( '기간' , 'RRRR-MM-DD HH24:MI:SS')
+ and maxvalue
+order by versions_starttime;
+
+-- versions_starttime : 변경시작시간, versions_endtime : 변경종료시간, versions_operation : 변경수행여부
+-- "VERSIONS절"에 변경이력 정보를 보고 싶은 기간 지정 : VERSIONS BETWEEN TIMESTAMP  TO_TIMESTAMP (   ) AND MAXVALUE 
+```
+
+#### 103. 실수로 지운 데이터 복구하기 (FLASHBACK TRANSACTION QUERY)
+사원 테이블을 5분 전으로 되돌리기 위한 DML문 출력
+```sql
+SELECT undo_SQL
+FROM flashback_transaction_query
+where table_owner = 'SCOTT1' and table_anme = 'emp'
+and commit_SCN between ~ and ~
+order by start_timestamp desc;
+
+-- TRANSACTION QUERY 테이블에서 UNDO(취소)할 수 있는 SQL 조회
+-- SCN(system change number) commit할 때 생성되는 번호
+-- 데이터 베이스 모드를 아카이브 모드로 변경해야 함. 오류 발생 시, DB 복구할 수 있는 로그 정보를 자동으로 저장하게 하는 모드.
+-- SQL PLUS에서 DB를 마운트 상태(STARTUP MOUNT ORACLE)로 올린 뒤, 아카이브 모드(DML문이 모두 redo log file에 자동 저장)로 변경 가능.
+-- SQL PLUS...?
+```
+
+#### 104. 데이터 품질 높이기 (PRIMARY KEY 제약)
+PRIMARY KEY 제약으로 특정 컬럼에 중복 X, null X 설정
+```sql
+CREATE TABLE dept02
+ (DEPTNO NUMBER(10) CONSTRANINT dept02_DEPTNO_PK PRIMARY KEY,
+  DNAME VARCHAR2(10)
+  LOC VARCHAR2(10));
+  
+ ALTER TABLE dept02
+ ADD CONSTRAINT dept02_DEPTNO_PK PRIMARY KEY(DEPTNO);
+
+-- 테이블 생성 시점 제약 설정 : 컬럼명 "데이터유형" CONSTRAINT "제약이름 : 테이블명_컬럼명_제약종류축약어" "제약종류"
+-- 테이블 생성 후 제약 설정 : ALTER TABLE 테이블명  ADD CONSTRAINT "제약이름 : 테이블명_컬럼명_제약종류축약어" "제약종류(컬럼명)"
+-- 제약 종류와 축약어 : UN(unique) NN(not null) ck(check) FK(foreign kwy, references)
+```
+
+#### 105. 데이터 품질 높이기 (UNIQUE 제약)
+UNIQUE 제약으로 특정 컬럼에 중복 X 설정
+```sql
+CREATE TABLE dept03
+ (DEPTNO NUMBER(10)
+  DNAME VARCHAR2(10) CONSTRAINT dept03_DNAME_UN UNIQUE,
+  LOC VARCHAR2(10));
+  
+ALTER TABLE dept03
+ADD CONSTRAINT dept03_DNAME_UN UNIQUE(DNAME); 
+  
+-- 테이블 생성 시점 제약 설정 : 컬럼명 "데이터유형" CONSTRAINT "제약이름 : 테이블명_컬럼명_제약종류축약어" "제약종류"
+-- 테이블 생성 후 제약 설정 : ALTER TABLE 테이블명  ADD CONSTRAINT "제약이름 : 테이블명_컬럼명_제약종류축약어" "제약종류(컬럼명)"
+```
+
+#### 106. 데이터 품질 높이기 (NOT NULL)
+NOT NULL 제약으로 특정 컬럼에 null X 설정
+```sql
+CREATE TABLE dept04
+ (DEPTNO NUMBER(10)
+  DNAME VARCHAR2(10)
+  LOC VARCHAR2(10) CONSTRAINT dept04_LOC_NN NOT NULL);
+
+ALTER TABLE dept04
+MODIFY LOC CONSTRAINT dept04_LOC_NN NOT NULL;
+```
+
+#### 107. 데이터 품질 높이기 (CHECK)
+월급이 0에서 6000 사이의 데이터만 입력되거나 수정될 수 있도록 제약 설정
+```sql
+CREATE TABLE emp02
+ (EMPNO NUMBER(10)
+  ENAME VARCHAR2(20)
+  SAL NUMBER(10) CONSTRAINT demp02_SAL_CK CHECK(SAL BETWEEN 0 an 6000 ));
+  
+ALTER TABLE emp02
+ ADD CONSTRAINT emp02_SAL_CK;
+ 
+-- 테이블 생성 시점 제약 설정 : 컬럼명 "데이터유형" CONSTRAINT "제약이름 : 테이블명_컬럼명_제약종류축약어" "제약종류(컬럼명 BETWEEN ~ and ~)"
+-- 테이블 생성 후 제약 삭제 : ALTER TABLE 테이블명  DROP CONSTRAINT "제약이름 : 테이블명_컬럼명_제약종류축약어"
+```
+
+#### 108. 데이터 품질 높이기 (FOREIGN KEY)
+부서 테이블(부모)에 존재하는 부서번호만, 사원 테이블(자식)에 부서번호(자식키) 입력하는 제약 설정
+```sql
+CREATE TABLE dept05
+ (DEPTNO NUMBER(10) CONSTRAINT dept05_DEPTNO_PK PRIMARY KEY,
+  DNAME VARCHAR2(10)
+  LOC VARCHAR(10));
+  
+CREATE TABLE emp03
+ (EMPNO NUMBER(10)
+  ENAME VARCHAR2(10)
+  DEPTNO NUMBER(10) CONSTRAINT emp03_DEPTNO_FK REFERENCES dept05(DEPTNO)
+    
+ALTER TABLE dept05
+ DROP CONSTRAINT dept05_DEPTNO_PK cascade;
+ 
+-- 테이블 생성 시점 제약 설정 : 컬럼명 "데이터유형" CONSTRAINT "제약이름 : 테이블명_컬럼명_제약종류축약어" "제약종류 : REFERENCES 부모 테이블명(부모 컬럼명)"
+-- 부모 테이블 참조컬럼에 존재하지 않는 데이터는 자식 테이블에 입력/수정 불가능
+-- 부모 테이블 참조컬럼(부모키)은 삭제 불가능, cascade 옵션 작성할 경우 자식 테이블 참조컬럼(자식키) 삭제 가능
+-- 부모 테이블 참조컬럼 삭제 : ALTER TABLE 테이블명  DROP CONSTRAINT "제약이름 : 테이블명_컬럼명_제약종류축약어" cascade
+```
+
+#### DAY 15.REVIEW
+MORE explanation on SPQ PLUS and FLASHBACK(Archive log mode)
