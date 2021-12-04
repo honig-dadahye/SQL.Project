@@ -2227,3 +2227,198 @@ ALTER TABLE dept05
 
 #### DAY 15.REVIEW
 MORE explanation on SPQ PLUS and FLASHBACK(Archive log mode)
+
+
+#### 109. WITH절 사용하여 성능 높이기 (WITH AS)
+동일 SQL 반복될 시, WITH절로 임시 저장 영역에 테이블명 생성
+```sql
+WITH job_sumsal AS (
+    SELECT
+        job,
+        SUM(sal) AS 토탈
+    FROM
+        emp
+    GROUP BY
+        job)
+SELECT
+    job,
+    토탈
+FROM
+    job_sumsal
+WHERE
+    토탈 > (
+        SELECT AVG(토탈)
+        FROM job_sumsal);
+
+-- 임시 저장 영역에 TEMP 테이블 생성, 단 WITH절에서만 사용 가능.
+```
+
+#### 110. WITH절 사용하기 (SUBQUERY FACTORING)
+서브 쿼리 2개가 서로 데이터를 참고할 수 있게 WITH절에 TEMP 테이블 2개 생성
+직업별 토탈 값의 평균값에 3000을 더한 값보다 더 큰 부서 번호별 토탈 월급 출력
+```sql
+WITH job_sumsal AS (
+    SELECT
+        job,
+        SUM(sal) AS 토탈
+    FROM
+        emp
+    GROUP BY
+        job)
+
+DEPT_SUMSAL AS ( SELECT
+                     deptno,
+                     SUM(sal) AS 토탈
+                 FROM
+                     emp
+                 GROUP BY
+                     deptno
+                 HAVING
+                     토탈 > (
+                         SELECT AVG(토탈) + 3000
+                         FROM job_sumsal);
+
+-- 원래는 특정 서브 쿼리문의 컬럼을 다른 서브 쿼리문에서 참조하는 것은 불가능
+-- SUBQUERY FACTORING : WITH절 쿼리 결과로 임시 테이블 생성
+```
+
+#### 111. SQL로 알고리즘 문제 풀기 (구구단 2단 출력)
+WITH절과 계층형 질의문을 사용하여 LOOP문 구현
+```sql
+SELECT
+    level AS num
+FROM
+    dual
+CONNECT BY
+    level <= 9;
+
+WITH loop_table AS (
+    SELECT
+        level AS num
+    FROM
+        dual
+    CONNECT BY
+        level <= 9)
+        
+SELECT
+    '2' || 'x' || num || '=' || 2 * num AS "2단"
+FROM
+    loop_table;
+    
+-- 계층형 쿼리(Hierarchical Query)는 오라클에서만 지원하는 기능
+-- 숫자 1~9 출력 결과를 LOOP_TABLE 임시 테이블로 저장
+```
+
+#### 112. SQL로 알고리즘 문제 풀기 (구구단 1단 ~ 9단 출력)
+```sql
+WITH loop_table AS (
+    SELECT
+        level AS num
+    FROM
+        dual
+    CONNECT BY
+        level <= 9)
+
+    GUGU_TABLE AS (
+    SELECT
+        level + 1 AS gugu
+    FROM
+        dual 
+    connect by level <=8)
+
+SELECT
+    to_char(a.num) || 'x' || to_char(b.gugu) || '=' to_char ( B . GUGU * A . NUM ) AS "구구단"
+FROM 
+    LOOP_TABLE A, GUGU_TABLE B;
+```
+
+#### 113. SQL로 알고리즘 문제 풀기 (직각 삼각형 출력)
+WITH절과 계층형 질의문, LPAD 사용해 시각화 하기
+```sql
+SELECT LEVEL as NUM
+FROM DUAL
+CONNECT BY LEVEL <= 8;
+
+WITH loop_table AS (
+    SELECT
+        level AS num
+    FROM
+        dual
+    CONNECT BY
+        level <= 8)
+        
+SELECT
+    lpad('☆', num, '★') AS star
+FROM
+    loop_table;
+
+-- LPAD를 이해하기 쉬운 방법으로 SQL 시각화함
+```
+
+#### 114. SQL로 알고리즘 문제 풀기 (삼각형 출력)
+```sql
+undefine 숫자1
+undefine 숫자2
+
+WITH loop_table AS (
+    SELECT
+        level AS num
+    FROM
+        dual
+    CONNECT BY
+        level <= &숫자1)
+SELECT
+    lpad(' ', &숫자2 - num, ' ') || Rpad('☆', num, '★') AS triangle
+FROM
+    loop_table;
+    
+-- 공백 문자의 경우, ''가 아닌 ' '로 작성해야 정상 출력 됨
+-- 두번째 LPAD, RPAD 함수는 거꾸로 작성되는지 이해가 안됨...
+-- 치환변수(&)를 사용하면, 입력받은 숫자만금 SQL 시각화함
+-- 치환변수 초기화 : undefine 숫자1/p_num, 쿼리 내 치환변수 입력 방법 : &숫자1, &p_num
+```
+
+#### 115. SQL로 알고리즘 문제 풀기 (마름모 출력)
+WITH절과 LPAD, UNION ALL 사용하여 마름모 출력 (LOOP문, 임시 저장 테이블 사용 X)
+```sql
+UNDEFINE p_num 
+accept p_num prompt '숫자 입력' 
+
+SELECT
+    lpad(' ', &p_num - level, ' ')
+    || lpad('☆', level, '☆') AS allosy
+FROM
+    dual
+CONNECT BY
+    level <= &p_num
+UNION ALL
+SELECT
+    lpad(' ', level - 1, ' ')
+    || lpad('★', &p_num + 1 - level, '★') AS allosy
+FROM
+    dual
+CONNECT BY
+    level <= &p_num;
+    
+-- SQL PLUS 명령어 하지 않을 경우, 치환변수/호스트변수/외부변수 입력횟수만큼 ENTER VALUE 프롬프르창이 뜸
+-- promt로 '숫자 입력 :'을 화면에 출력하고 accept는 값을 받아 p_num 변수에 담아 출력
+```
+
+#### 116. SQL로 알고리즘 문제 풀기 (사각형 출력)
+WITH절과 계층형 질의문 사용하여 사각형 출력
+```sql
+undefine p_num1
+undefine p_num2
+ACCEPT p_num1 prompt '세로는요?'
+ACCEPT p_num2 prompt '가로는요?'
+
+WITH LOOP_TABLE AS (SELECT LEVEL FROM DUAL CONNECT BY level <= &p_num1)
+
+SELECT LPAD ('♥', &p_num2,'♥')
+from LOOP_TABLE;
+
+-- ACCEPT문 : ACCEPT 호스트 변수 prompt '메세지' ;
+```
+
+#### Day 16. REVIEW
+Finally reach to Algorithm definetely with easy and basic one
