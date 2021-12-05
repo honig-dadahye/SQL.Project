@@ -2422,3 +2422,159 @@ from LOOP_TABLE;
 
 #### Day 16. REVIEW
 Finally reach to Algorithm definetely with easy and basic one
+
+#### 117. SQL로 알고리즘 문제 풀기
+계층형 질의문과 집계 함수를 활용해 1부터 10까지의 합 출력
+```sql
+undefine p_num
+ACCEPT p_num prmpt '숫자는요?'
+
+SELECT SUM(LEVEL) as 합계
+FROM DUAL
+CONNECT BY LEVEL <= &p_num;
+```
+
+#### 118. SQL로 알고리즘 문제 풀기
+계층형 질의문과 LN, EXP함수를 활용해 1부터 10까지의 곱 출력
+```sql
+undefine p_num
+ACCEPT p_num prompt '숫자는요?'
+
+SELECT ROUND(EXP(SUM(LN(LEVEL)))) as 곱
+FROM DUAL
+CONNECT BY LEVEL <= &p_num;
+
+
+-- ln함수 : 밑수가 자연상수(e)인 로그 함수
+-- exp함수 : 자연상수의 제곱으로 만들어주기 위한 함수
+-- round함수를 하지 않으면 저 소수 밑자리에서 11값이 등장함
+```
+
+#### 119. SQL로 알고리즘 문제 풀기
+계층형 질의문으로 1부터 10까지 짝수만 출력
+```sql
+undefine p_num
+ACCEPT p_num prompt '숫자는요?'
+
+SELECT LISTAGG(LEVEL, ',') as 짝수
+FROM DUAL
+WHERE mod(LEVEL, 2) = 0
+CONNECT BY LEVEL <= &p_num;
+```
+
+#### 120. SQL로 알고리즘 문제 풀기
+WITH절과 계층형 질의문을 활용해 1부터 10까지 소수만 출력
+```sql
+undefine p_num
+ACCEPT p_num prompt '숫자는요?'
+
+WITH LOOP_TABLE AS (SELECT LEVEL as NUM
+                    FROM DUAL
+                    CONNECT BY LEVEL <= &p_num)
+
+SELECT L1.NUM as 소수
+FROM LOOP_TABLE L1, LOOP_TABLE L2
+WHERE mod(L1.NUM, L2.NUM) = 0
+GROUP BY L1.NUM
+HAVING COUNT(L1.NUM) = 2;
+
+-- 약수 : MOD(A, B) = 0, B는 A의 약수이다.
+-- 자기 자신의 수로 mod함수 사용하기 위해 셀프 조인 활용
+```
+
+#### 121. SQL로 알고리즘 문제 풀기 (최대 공약수)
+```sql
+undefine p_num1
+undefine p_num2
+ACCEPT p_num1 prompt '숫자1 은요?'
+ACCEPT p_num2 prompt '숫자2 는요?'
+
+WITH LOOP_TABLE AS (SELECT LEVEL as NUM
+                     FROM DUAL
+                     CONNECT BY LEVEL <= &p_num2)
+         
+SELECT max(NUM) as 최대공약수          
+FROM LOOP_TABLE   
+WHERE mod(&p_num1, NUM) = 0
+  and mod(&p_num2, NUM) = 0;    
+  
+-- 계층형 질의문의 CONNECT BY절은 WITH문 or SELECT문에서 등장할 수 있음 
+-- GROUP BY NUM 함수 활용 시, 최대공약수 8이 아닌 모든 공약수가 출력됨
+```
+
+#### 122. SQL로 알고리즘 문제 풀기 (최소 공배수)
+```sql
+undefine p_num1
+undefine p_num2
+ACCEPT p_num1 prompt '숫자1 은요?'
+ACCEPT p_num2 prompt '숫자2 는요?'
+
+WITH LOOP_TABLE AS (SELECT LEVEL as NUM
+                     FROM DUAL
+                     CONNECT BY LEVEL <= &p_num2)
+         
+SELECT max(NUM) as 최대공약수, 
+       (max(NUM) * (&p_num2/max(NUM)) * (&p_num1/max(NUM))) as 최소공배수          
+FROM LOOP_TABLE   
+WHERE mod(&p_num1, NUM) = 0
+  and mod(&p_num2, NUM) = 0;    
+  
+-- 최소 공배수 = 최대 공약수 * (숫자1/최대 공약수) * (숫자2/최대 공약수)
+```
+
+#### 123. SQL로 알고리즘 문제 풀기 (피타고라스의 정리)
+CASE문과 POWER함수를 사용해 직각삼각형 여부를 출력
+```sql
+ACCEPT p_num1 prompt '밑변은요?'
+ACCEPT p_num2 prompt '높이는요?'
+ACCEPT p_num3 prompt '빗변은요?'
+
+SELECT CASE WHEN
+            (power(&p_num1,2) + power(&p_num2,2) = power(&p_num3,2) )
+            THEN '직각삼각형이 맞습니다.'
+            ELSE '직각삼각형이 아닙니다.' END AS "피타고라스의 정리"
+FROM DUAL;
+
+-- undefine문 없이 ACCEPT문만으로 작성 가능
+-- POWER함수 : 지수함수 power(밑, 지수)
+-- CASE문에서 문자 데이터 출력 시, single quatation 작성해야 출력됨
+```
+
+#### 124. SQL로 알고리즘 문제 풀기 (몬테카를로 알고리즘)
+피타고라스의 정리, DBMS_RANDOM 패키지와 계층형 질의문으로 원주율 출력
+```sql
+SELECT SUM( CASE WHEN ( power(num1,2) + power (num2,2) <=1
+                 THEN 1
+                 ELSE 0 END) ) /100000 *4 as 원주율
+FROM (SELECT DBMS_RANDOM.VALUE(0,1) as num1
+             DBMS_RANDOM.VALUE(0,1) as num2
+      FROM DUAL
+      CONNECT BY LEVEL < 100000);
+
+-- 난수 : 특정한 배열순서나 규칙을 가지지 않는 연속적인 임의의 수
+-- 원주율 : 원의 지름에 대한 둘레의 비율, 원의 지름에 대한 넓이의 비율
+-- 몬테카를로 알고리즘은 난수를 이용하여 알고자 하는 값을 확률적으로 계산해 내는 알고리즘
+-- DMBS_RANDOM 패키지는 난수를 생성하는 패키지, VALUE로 숫자 구간을 설정하고 CONNECT BY LEVEL문으로 갯수 설정
+-- FROM절에서 계층형 질의문 활용
+```
+
+#### 125. SQL로 알고리즘 문제 풀기 (오일러 상수 자연상수 구하기)
+POWER 함수, 계층형 질의문, 몬테카를로 알고리즘을 이용하여 자연상수 e값(2.718...) 출력
+```sql
+WITH LOOP_TABLE as (SELECT LEVEL as NUM
+                    FROM DAUL
+                    CONNECT BY LEVEL <= 1000000)
+
+SELECT e값
+FROM (
+    SELECT NUM, POWER(1+1/NUM),NUM) as e값
+    FROM LOOP_TABLE)
+WHERE NUM =1000000;    
+
+-- NUM(난수)가 1000000 조건을 적용하기 위해 FROM절에 서브쿼리문 작성 
+-- 오일러 상수 : POWER(1+1/NUM),NUM)
+-- SQL문은 꼭 난수가 필요한가?
+```
+
+#### DAY 17. REVIEW
+Deep and Concise Questions!
