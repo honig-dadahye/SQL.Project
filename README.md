@@ -2741,3 +2741,135 @@ WHERE   순위 = 1;
 
 #### DAY 18. REVIEW
 To kaggle out data set and make the point
+
+
+#### 133. 가정불화로 생기는 가장 큰 범죄 유형은 무엇인가?
+데이터셋 : 공공 데이터 포털 사이트에서 범죄유형과 범죄원 검색
+```sql
+CREATE TABLE CRIME_REASON
+(범죄유형 VARCHAR2(30),
+ 생계형  number(10),
+ 유흥 number(10),
+ 도박 number(10),
+ 허영심 number(10),
+ 복수  number(10),
+ 해고  number(10),
+ 징벌 number(10),
+ 가정불화  number(10),
+ 호기심 number(10),
+ 유혹  number(10),
+ 사고   number(10),
+ 불만   number(10),
+ 부주의   number(10),
+ 기타   number(10)  );
+
+CREATE TABLE CRIME_REASON2
+AS
+    SELECT  *
+    FROM    CRIME_REASON1
+    UNPIVOT ( CNT FOR TERM IN (생계형, 유흥, 도박, 허영심, 복수, 해고, 징벌, 가정불호, 호기심, 유혹, 사고, 불만, 부주의, 기타)); 
+
+SELECT  범죄 유형
+FROM    CRIME_REASON2
+WHERE   CNT = (SELECT   MAX(CNT)
+               FROM     CRIME_REASON2
+               WHERE    TERM = '가정불화')
+        AND TERM = '가정불화';       
+
+-- unpivot문(CREATE TABLE AS)으로 범죄 동기 컬럼(열)을 로우(행)으로 조회한 데이터 테이블 생성
+-- unpivot문은 열을 행의 집합으로, pivot문은 행을 열의 집합으로 조회
+```
+
+#### 134. 방화 사건의 가장 큰 원인은 무엇인가?
+```sql
+SELECT  범죄 유형 as 방화 원인
+FROM    CRIME_REASON2
+WHERE   CNT = (SELECT   MAX(CNT)
+               FROM     CRIME_REASON2
+               WHERE    TERM = '방화')
+        AND TERM = '방화';  
+```
+
+#### 135. 한국에서 교통사고가 가장 많이 발생하는 지역은?
+```sql
+CREATE TABLE ACC_LOC
+(ACC_LOC    varchar2(200),
+ ACC_CNT    number(20));
+ 
+SELECT  *
+FROM    (SELECT ACC_LOC, ACC_CNT, DENSE_RANK() OVER(ORDER BY ACC_CNT DESC NULLS LAST) as 순위
+         FROM ACC_LOC)
+WHERE   순위 <= 5 ;
+```
+
+#### 136. 치킨집 폐업이 가장 많았던 연도가 언제인가?
+```sql
+CREATE TABLE CHI_CLOSING
+(연도     NUMBER(10),
+ 치킨집    NUMBER(10)); 
+ 
+SELECT  *
+FROM    CHI_CLOSING
+WHERE   치킨집 = (SELECT MAX(치킨집)
+                 FROM   CHI_CLOSING);
+                 
+SELECT  *
+FROM    (SELECT 연도, 치킨집, RANK() OVER (ORDER BY 치킨집 DESC) 순위
+         FROM CHI_CLOSING)
+WHERE   순위 = 1;         
+
+-- 1) WHERE 절의 서브 쿼리문에서 최대값 조회하는 방법
+-- 2) FROM 절의 서브 쿼리문에서 rank 함수 활용하는 방법
+```
+
+#### 137. 세계에서 근무 시간이 가장 긴 나라는 어디인가?
+데이터셋 : 통계청 KOSIS 국가 통계포털 "근로시간" 검색
+```sql
+CREATE TABLE WORKING_TIME
+(국가별    VARCHAR2(20),
+ "2014"     NUMBER(30),  
+ "2015"     NUMBER(30),
+ "2016"     NUMBER(30),
+ "2017"     NUMBER(30),  
+ "2018"     NUMBER(30));
+ 
+ALTER TABLE WORKING_TIME
+MODIFY 국가별 VARCHAR2(30);
+
+CREATE VIEW WORKING_TIME2
+AS
+    SELECT  *
+    FROM    WORKING_TIME
+    UNPIVOT ( CNT FOR YEAR IN ("2014", "2015", "2016", "2017", "2018"));
+     
+SELECT  국가별, CNT, RANK () OVER (ORDER BY CNT DESC) 순위
+FROM    WORKING_TIME2
+WHERE   YEAR = 2018 ; 
+
+-- 컬럼이었던 2014~2018이 로우(행)으로 가면서 새로운 컬럼명 생성 : YEAR
+```
+
+#### 138. 남자와 여자가 각각 많이 걸리는 암은 무엇인가?
+```sql
+CREATE TABLE CANCER
+(TYPE    varchar2(50),
+ PATIENT number(20),
+ SEX     varchar2(30));
+ 
+SELECT  distinct(type),sex, patient
+FROM    CANCER
+WHERE   patient = (SELECT max(patient)
+                   FROM   CANCER
+                   WHERE  sex = '남자' and type != '모든암' )   
+UNION ALL
+SELECT  distinct(type),sex,  patient
+FROM    CANCER
+WHERE   patient = (SELECT max(patient)
+                   FROM   CANCER
+                   WHERE  sex = '여자' );   
+    
+-- distinct 컬럼이라기 보단 SELECT distinct(기준 컬럼) 으로 작성해야 함   
+```
+
+#### DAY 19.REVIEW
+DEALT with unkind dataset using UNPIVOT
