@@ -2578,3 +2578,166 @@ WHERE NUM =1000000;
 
 #### DAY 17. REVIEW
 Deep and Concise Questions!
+
+
+#### 126. 엑셀 데이터를 DB에 로드하는 방법
+CSV파일을 오라클 데이터 베이스에 입력
+```sql
+CREATE TABLE POLLUTION
+(측정일시   DATE,
+ 측정소명   VARCHAR(2),
+ 이산화질소농도   NUMBER(10,3),   
+ 오존농도        NUMBER(10,3),  
+ 이산화탄소농도   NUMBER(10,1),
+ 아황산가스      NUMBER(10,3),
+ 미세먼지        NUMBER(10),
+ 초미세먼지      NUMBER(10));
+ 
+ALTER TABLE POLLUTION MODIFY 측정소명 VARCHAR(20);
+ 
+SELECT  * 
+FROM    POLLUTION
+WHERE   측정소명 in ( '강동구', '강남구' );
+ 
+-- '측정소명' 컬럼 데이터 타입 변경 : VARCHAR(2) > VARCHAR(20)
+```
+
+#### 127. 텍스트에서 가장 빈도수가 높은 단어 출력
+스티브 잡스 연설문에서 가장 많이 나오는 단어 조회 (REGEXP_SUBSTR)
+```sql
+CREATE TABLE SPEECH
+( SPEECH_TEXT   VARCHAR2(1000));
+
+SELECT  count(*)
+FROM    SPEECH;
+
+SELECT word, count(*)
+FROM (
+    SELECT  REGEXP_SUBSTR( lower(SPEECH_TEXT), '[^ ]+', 1, a) word 
+    FROM    SPEECH, 
+            (SELECT level a
+            FROM    DUAL
+            CONNECT BY level <=52) )
+WHERE    word is not null
+GROUP BY word
+ORDER BY count(*) desc;
+        
+-- 텍스트 길이 10000은 너무 길어 오류(ORA-00910) 발생
+```
+
+#### 128. 텍스트에서 긍정 단어, 부정 단어 건수 출력 (다중 로우 서브 쿼리문)
+```sql
+CREATE TABLE POSITIVE ( P_TEXT VARCHAR2(2000));
+CREATE TABLE NEGATIVE ( N_TEXT VARCHAR2(2000));
+
+CREATE VIEW SPEECH_VIEW
+AS
+    SELECT  REGEXP_SUBSTR( lower(SPEECH_TEXT), '[^ ]+', 1, a) word 
+    FROM    SPEECH, 
+            (SELECT level a
+            FROM    DUAL
+            CONNECT BY level <=52);
+            
+SELECT count(word) as 긍정단어
+FROM SPEECH_VIEW
+WHERE lower(word) IN (SELECT lower (p_text)
+                      FROM positive) ;  
+
+-- 1) 영어 긍정 단어와 부정 단어를 저장하기 위한 테이블을 생성
+-- 2) 심플 작성을 위해 127 VIEW 생성
+-- 3) 긍정단어 테이블을 서브 쿼리문으로 작성하여 긍정단어 수 조회
+```
+
+#### 129. 절도가 많이 발생하는 요일은 언제인가? (unpivot, rank)
+```sql
+CREATE TABLE CRIME_DAY
+(CRIME_TYPE VARCHAR2(50),
+ SUN_CNT    NUMBER(10),
+ MON_CNT    NUMBER(10),
+ TUE_CNT    NUMBER(10),
+ WED_CNT    NUMBER(10),
+ THU_CNT    NUMBER(10),
+ FRI_CNT    NUMBER(10),
+ SAT_CNT    NUMBER(10),
+ UNKNOWN_CNT    NUMBER(10)) ;
+ 
+ CREATE TABLE UNPIVOT
+ AS
+    SELECT *
+    FROM CRIME_DAY
+    UNPIVOT ( CNT FOR DAY_CNT IN (SUN_CNT, MON_CNT, TUE_CNT, WED_CNT, THU_CNT, FRI_CNT, SAT_CNT)) ;
+ 
+ SELECT *
+ FROM (
+     SELECT     DAY_CNT, CNT, RANK () OVER (ORDER BY CNT DESC) as RNK
+     FROM       UNPIVOT
+     WHERE      TRIM(CRIME_TYPE) = '살인')
+ WHERE RNK =1;
+ 
+ -- unpivot문으로 요일 컬럼을 로우로 검색한 데이터로 crime_day_unpivot 테이블 생성
+ -- 특정 범죄(절도)로 조회한 뒤, CNT 순위의 컬럼명 지정(RNK)
+ ```
+ 
+ #### 130. 우리나라에서 대학 등록금이 가장 높은 학교는 어디인가?
+ 데이터셋 : 공공 데이터 포털에서 '대학등록금' 검색
+ ```sql
+ CREATE TABLE UNIVERSITY_FEE
+ (DIVISION      VARCHAR2(20),
+  TYPE          VARCHAR2(20),
+  UNIVERSITY    VARCHAR2(60),
+  LOC           VARCHAR2(40),
+  ADMISSION_CNT NUMBER(20),
+  ADMISSION_FEE NUMBER(20),
+  TUITION_FEE   NUMBER(20));
+  
+  -- 대학명, 지역명은 데이터 유형 60,40까지 지정해야 함.
+  -- 빈번히 까먹는 컬럼명, 컬럼 데이터 유형 지정 후 ',' 작성해야 함
+
+SELECT  *  
+FROM (
+      SELECT UNIVERSITY, TUITION_FEE, RANK() OVER (ORDER BY TUITION_FEE DESC NULLS LAST) 순위
+      FROM  UNIVERSITY_FEE)
+WHERE   순위 = 1 ; 
+
+-- 오라클에서 순위 정렬 시, null값이 자동적으로 가장 높은 값으로 인식됨.(2차 반복!)
+```
+
+#### 131. 서울시 물가 중 가장 비싼 품목과 가격은 무엇인가?
+데이터셋 : 공공 데이터 포털에서 '서울시 농수산물 가격' 검색
+```
+
+CREATE TABLE SEOUL_PRICE
+( P_SEQ    number(20),
+  M_SEQ    number(20),
+  M_NAME   varchar2(30),
+  A_NAME   varchar2(30),
+  A_PRICE  number(30));
+  
+ SELECT A_NAME, A_PRICE, M_NAME
+ FROM   SEOUL_PRICE
+ WHERE  A_PRICE = ( SELECT MAX(A_PRICE)
+                    FROM    SEOUL_PRICE);
+                    
+-- WHERE절에서 집계 함수(MAX, MIN)를 활용한 서브쿼리문 작성하는 아이디어
+-- 만약 일일이 insert문을 작성하여 데이터 입력 시, 임의적으로 컬럼 선택/제외하지 않을 것
+```
+
+#### 132. 살인이 가장 많이 발생하는 장소는 어디인가?
+데이터셋 : 공공 데이터 포털에서 '범죄발생장소' 검색
+```sql
+CREATE TABLE CRIME_LOC
+( TYPE    VARCHAR2(100),
+  LOC     VARCHAR2(100),
+  CNT     NUMBER(10));  
+  
+SELECT  *
+FROM    (SELECT LOC, CNT, RANK () OVER (ORDER BY CNT DESC) 순위 
+         FROM CRIME_LOC
+         WHERE TYPE = '살인')
+WHERE   순위 = 1;
+
+-- 범죄발생장소 데이터의 경우, 대부분 구체적인 장소명들이 열 나열이라 데이터 임포트가 어려움
+```
+
+#### DAY 18. REVIEW
+To kaggle out data set and make the point
