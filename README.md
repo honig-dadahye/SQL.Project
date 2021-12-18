@@ -2873,3 +2873,236 @@ WHERE   patient = (SELECT max(patient)
 
 #### DAY 19.REVIEW
 DEALT with unkind dataset using UNPIVOT
+
+
+#### 139. PL/SQL 변수 이해하기 (dbms_output.put_line)
+```sql
+set serveroutput on
+accept p_num1 prompt '첫 번째 숫자를 입력하세요 ~'
+accept p_num2 prompt '두 번째 숫자를 입력하세요 ~'
+
+declare 
+    v_sum   number(10);
+begin
+    v_sum   := &p_num1 + &p_num2 ;
+    dbms_output.put_line('총합은:' || v_sum);
+end;
+/
+
+-- 명령 프롬프트에서 sqlplus 계정명/비밀번호 입력 후 SQL*PLUS 프롬프트 실행(SQL 명령문 기능 & Oracle 환경 설정 기능 제공)
+-- SQL*PLUS 프롬프트에서 edit p139 작성 후 엔터 > 메모장에 예제 저장 후 닫기 > 프롬프트 창에서 @p.139 스크립트 실행
+-- PL/SQL은 Procedure Language SQL 약자. 비절차적인 언어인 SQL에 프로그래밍 요소를 가미해서 절차적으로 처리하는 데이터 베이스 프로그래밍 언어
+-- 절차적 언어란 개발자가 처리 절차(순서, 방법)을 처음부터 끝까지 정해주는 언어 COBAL JAVA C.
+-- 비절차적 언어란 개발자가 처리절차를 지정하지 않고 원하는 결과(무엇)만 정의하여 요청하는 언어
+-- set serveroutpuut on 설정 후, dbms_output.putline( ) : 변수에 있는 값을 화면에 출력하는 put_line함수
+-- declare 선언절 : 변수, 상수, 커서, 예외 등 선언 / ;으로 종료
+-- begin 실행절 : 할당 연산자(:=) / ;으로 종료
+-- end; 절 : PL/SQL 블록 종료 
+-- / : PL/SQL문 종료
+-- 성공적으로 실행 시 "PL/SQL 프로시저가 성공적으로 완료되었습니다"라고 워크시트에 노출됨
+```
+
+#### 140. PL/SQL 변수 이해하기 (SELECT INTO 절)
+```sql
+set serveroutput on
+accept p_empno prompt '사원 번호를 입력하세요~'
+
+declare
+    v_sal number(10);
+begin
+    select sal into v_sal
+    from emp
+    where empno = &p_empno;
+    dbms_output.put_line('해당 사원의 월급은' || v_sal);
+
+end;
+/
+
+-- ORA-01403 오류 : 데이터를 찾을 수 없다고 뜨는데..?
+```
+
+#### 141. PL/SQL IF 이해하기 (블록 내에서의 제어문, IF ~ ELSE문)
+```sql
+set serveroutput on
+set verify off
+accept p_num prompt '숫자를 입력하세요!'
+begin
+    if mod(&p_num,2)=0 then
+     dbms_output.put_line ('짝수입니다');
+    else 
+     dbms_output.put_line ('짝수입니다');
+    end if;
+end;
+/
+
+-- set verify on/off : 명령어나 PL/SQL에서 &치환 변수를 사용할 때, 치환 전후의 자세한 값의 표시 여부 지정, 기본값은 ON
+```
+
+#### 142. PL/SQL IF 이해하기 (IF ~ELSE ~ ELSE문)
+이름을 입력받아 사원의 월급이 3000이상이면 고소득자, 2000 이상이고 3000보다 작으면 중간소득자, 2000보다 작으면 저소득자 메세지 출력
+```sql
+set serveroutput on
+set verify off
+accept p_name prompt '사원 이름을 입력하세요!'
+
+declare
+    v_ename emp.ename%type := upper('&p_name');
+    v_sal   emp.sal%type;
+    
+begin
+    select sal into v_sal
+    from emp
+    where ename = v_ename;
+    
+    if v_sal >= 3000 then
+     dbms_output.put_line('고소득자');
+    elsif v_sal >= 2000 then
+     dbms_output.put_line('중간소득자');
+    else 
+     dbms_output.put_line('저소득자');
+    end if; 
+    
+end;
+/
+ 
+-- SQL 프롬프트에서 사원이름을 입력받아 p_name 외부변수에 저장
+-- %type : 기존 테이블의 컬럼 데이터 유형을 PL/SQL 프로그램의 변수의 데이터 유형으로 설정
+-- if ~ elsif ~ else ~ end if
+```
+
+#### 143. PL/SQL basic loop 이해하기(Loop ~ exit when 조건 ~ end loop;)  
+```sql
+declare
+    v_count number(10) := 0;
+
+begin
+    LOOP 
+     v_count := v_count +1;
+     dbms_output.put_line ('2 X ' || v_count || ' = ' || 2*v_count);
+    EXIT WHEN v_count = 9;
+    END LOOP;
+
+end;
+/
+
+-- set serveroutput on문과 accept v_count prompt문이 등장하기 않는 이유는?
+```
+
+#### 144. PL/SQL While Loop 이해하기
+```sql
+declare
+    v_count number(10) := 0;
+
+begin
+    WHILE   v_count < 9 loop
+    v_count := v_count +1;
+    dbms_output.put_line ('2 X ' || v_count || ' = ' || 2*v_count);
+    END LOOP;
+    
+end;
+/
+
+-- while 루프문을 반복시킬 조건 loop이 TRUE일 때에만 loop문 수행.
+-- BASIC LOOP : loop ~ exit when 조건 ~ end loop -> WHILE LOOP : while 조건 loop ~ end loop
+```
+
+#### 145. PL/SQL for Loop 이해하기
+```sql
+begin
+    for i in 1 .. 9 loop
+    dbms_output.put_line ('2 X ' || i || ' = ' || 2*i);
+    END LOOP;
+    
+end;
+/
+
+-- BASIC LOOP : loop ~ exit when 조건 ~ end loop -> FOR LOOP : for i in 시작숫자 .. 종료숫자 loop
+-- FOR LOOP문이 가장 단순하며 무한루프 빠지지 않을 코드 (v_count 외부 변수 대신 인덱스 카운터 i 활용, declare문 X)
+```
+
+#### 146. PL/SQL 이중 Loop 이해하기 
+```sql
+prompt '구구단 전체를 출력합니다.'
+begin
+    for i in 2 .. 9 loop
+     for j in 1 .. 9 loop
+    dbms_output.put_line (i || ' X ' || j || ' = ' || i*j);     
+     END LOOP;
+    END LOOP;
+    
+end;
+/
+
+-- prompt 다음 나오는 문장은 single quatation 써도 되고 안써도 됨
+-- for loop문 작성 시, 하한값 .. 상한값 사이 점을 꼭 2개 찍어야 함
+-- 바깥 loop문과 안쪽 loop문이 중첩된 이중 loop문
+```
+
+#### 147. PL/SQL Cursor문 이해하기 (Basic Loop)
+```sql
+declare v_ename     emp.ename%type;
+        v_sal       emp.sal%type;
+        v_deptno    emp.deptno%type;
+
+    cursor emp_cursor is
+            select  ename, sal, deptno
+            from    emp
+            where   deptno = 10;
+begin
+        open emp_cursor;
+            loop 
+                fetch emp_cursor into v_ename, v_sal, v_deptno;
+                exit when emp_cursor%notfound;
+                dbms_output.put_line ( v_ename || ' ' || v_sal || ' ' || v_deptno);
+            end loop;
+        close emp_cursor;
+
+end;
+/
+
+-- ★ spl 워크시트 창에서 실행하는 것이 아니라, 명령 프롬프트 PL/SQL에서 메모장에 쿼리 작성 후 SQL 프롬프트에서 실행하는 것.
+-- decalre문으로 데이터 타입 선언 > cursor문(cursor 메모리영역명 is ...) > begin문 open 메모리영역명 basic loop문 > end loop, close 메모리영역명 > end  
+-- Cursor문 : PL/SQL 프로그램에서 처리할 데이터를 저장할 메모리 영역. (cursor 선언 > open > fetch > close) 
+-- 데이터 베이스 프로그래밍(PL/SQL)은 원래 테이블에서 데이터를 한 건씩 가져오는데, cursor문은 여러 행의 결과를 한 번에 출력
+-- 묵시적 커서,명시적 커서 / 4개의 속성(%ISOPEN, %FOUND, %NOTFOUND, %ROWCOUNT)
+-- fetch문 : 커서문에서 원하는 결과를 읽어온 것 
+```
+
+#### 148. PL/SQL Cursor문 이해하기 (For Loop)
+```sql
+accept p_deptno prompt '부서 번호를 입력하세요~'
+declare
+    cursor emp_cursor is
+        select  ename, sal, deptno
+        from    emp
+        where   deptno = &p_deptno;
+        
+begin
+    for emp_record in emp_cursor loop
+     dbms_output.put_line ( emp_record.ename || ' ' || emp_record.sal || ' ' || emp_record.deptno);
+    end loop;
+    
+end;
+/
+```
+
+#### 149. PL/SQL Cursor for loop문 이해하기
+declare 절 없이 for loop 선언하여 서브 쿼리문 작성
+```sql
+accept p_deptno prompt '부서 번호를 입력하세요~'
+        
+begin
+    for emp_record in (
+        select  ename, sal, deptno
+        from    emp
+        where   deptno = &p_deptno) loop
+        
+     dbms_output.put_line ( emp_record.ename || ' ' || emp_record.sal || ' ' || emp_record.deptno);
+    end loop;
+    
+end;
+/
+```
+
+#### DAY 20. REVIEW
+PL/SQL : Understanding SQL in a whole new direction 
