@@ -3106,3 +3106,281 @@ end;
 
 #### DAY 20. REVIEW
 PL/SQL : Understanding SQL in a whole new direction 
+
+
+#### 150. 프로시저 구현하기 (create procedure)
+```sql
+create or replace procedure pro_ename_sal (p_ename in emp.ename%type)
+is
+	v_sal emp.sal%type;
+begin
+	select sal into v_sal
+		from emp
+		where ename = p_ename;
+
+	dbms_output.put_line (v_sal || '입니다');
+
+end;
+/
+
+-- create or replace문으로 데이터베이스에 프로시저 생성 또는 PL/SQL 코드 변경 
+-- 프로시저를 생성한 뒤, exec 함수로 PL/SQL코드를 데이터 베이스에서 프로시저 호출하여 실행
+```
+
+#### PL / SQL 개념 및 작성 요령에 관하여
+-- PL / SQL 은 Procedure Language와 Structured Query Language의 줄임말로 데이터베이스 응용프로그램을 작성
+-- PL / SQL은 SQL Developer 혹은 SQL명령창(SQLPLUS)에서 바로 작성하고 컴파일한 후 결과를 실행
+-- PL / SQL로 개발한 프로그램은 SQL Developer에 프로시저로 저장 가능 
+
+-- PL / SQL 블록 내에서 한 문장이 종료할 때마다 세미콜론(;)을 사용한다.
+-- END 뒤에 ;을 사용하여 하나의 블록이 끝났다는 것을 명시한다.
+-- PL / SQL 블록의 작성은 편집기를 통해 파일로 작성할 수도 있고, 프롬프트에서 바로 작성할 수도 있다.
+-- SQL PLUS 환경에서는 DECLARE나 BEGIN이라는 키워드로 PL / SQL 블록이 시작하는 것을 알 수 있다.
+-- 단일 행 주석은 --이고 여러 행 주석은 /* */이다.
+-- PL / SQL 블록은 행에 /가 있으면 종결된다.
+   
+#### 151. 함수 구현하기 (create function)
+```sql
+create or replace function get_loc (p_deptno in dept.deptno%type)
+return dept.loc%type
+is v_loc dept.loc%type;
+
+begin
+    select  loc into v_loc
+    from    dept
+    where   deptno = p_deptno;
+  return v_loc;
+  
+end;
+/
+
+select  ename, get_loc(deptno) as loc
+from    emp
+where   job = 'SALESMAN';
+
+-- 프로시저 구현 : 1번째 블록 procedure 프로시저명 (입력용 매개변수 in 데이터타입) - 2번째 블록 begin - 3번째 end
+-- 함수 구현 : 1번쨰 블록 function 함수명 (입력용 매개변수 in 데이터타입) return 데이터타입 - 2번째 블록 begin - 3번째 end
+```
+
+#### 152. 수학식 구현하기 (절대값)
+PL/SQL 프로그래밍 코드로 절대값 출력하는 수학식 구현, if else문 사용
+```sql
+set serveroutput on
+accept p_num prompt '숫자를 입력하세요~'
+
+declare
+    v_num   number(10) := &p_num;
+    
+begin
+    if v_num >= 0 then
+     dbms_output.put_line(v_num);
+    else
+     dbms_output.put_line(-1 * v_num);
+    end if;
+
+end;
+/
+
+-- begin절에서 is else문을 사용했기 때문에 end if로 종료해야 함
+-- set serveroutput on 은 dbms_output.put_line을 수행하기 위한 SQL*PLUS 명령어이다.
+```
+
+#### 153. 수학식 구현하기 (직각 삼각형)
+피타고라스와 직각삼각형 정리를 PL/SQL문으로 구현, if문과 power함수를 사용
+```sql
+set serveroutput on
+accept p_num1   prompt '밑변을 입력하세요~'
+accept p_num2   prompt '높이를 입력하세요~'
+accept p_num3   prompt '빗변을 입력하세요~'
+
+begin
+    if power(&p_num1,2) + power(&p_num2,2) = power(&p_num3,3)
+     then dbms_output.put_line('직각삼각형입니다.');
+    else dbms_output.put_line('직각삼각형이 아닙니다.');
+    end if;
+    
+end;
+/
+
+-- power (x, a) = x의 a승와 같은 지수함수
+-- begin절에서 dbms_output.put_line을 사용하기 위해 set serveroutput on절이 필요함
+-- declare절은 결과를 출력할 내부 변수가 필요할 경우 선언, 또는 특정 값을 할당할 경우.
+```
+
+#### 154. 수학식 구현하기 (지수함수)
+loop문을 이용하여 밑수를 지수만큼 반복하여 곱한 값 출력
+```sql
+set serveroutput on
+set verify off
+accept p_num1 prompt '밑수를 입력하세요~'
+accept p_num2 prompt '지수를 입력하세요~'
+
+declare
+    v_result    number(10) :=1 ;
+    v_num2      number(10) := &p_num1;
+    v_count     number(10) := 0;
+
+begin
+    loop
+        v_count := v_count + 1;
+        v_result := v_result*v_num2;
+        exit when   v_count = &p_num2;
+    end loop;
+        dbms_output.put_line(v_result);
+end;
+/
+
+-- 외부변수가 declare절, begin절 둘다 사용 가능함
+```
+
+#### 155. 수학시 구현하기 (로그 함수)
+밑수를 입력받아 진수가 되도록 밑수를 반복하여 곱한 값 출력
+```sql
+set serveroutput on
+set verify off
+accept p_num1 prompt '밑수를 입력하세요~'
+accept p_num2 prompt '진수를 입력하세요~'
+
+declare
+    v_num1 number(10)    := &p_num1;
+    v_num2 number(10)    := &p_num2;
+    v_count number(10)   := 0 ;
+    v_result number(10)  := 1;
+
+begin
+    loop
+            v_count  := v_count + 1;
+            v_result := v_result*v_num1;
+            exit when   v_result = v_num2;
+    end loop;
+            dbms_output.put_line(v_count);
+end;
+/
+
+-- v_count 로그값 출력하는 anonymous PL/SQL 코드
+-- set verify off : old값, new값 출력되지 않게 하는 SQL*PLUS 명령어
+```
+
+#### 156. 수학식 구현하기 (이중 루프문으로 구현하는 순열)
+```sql
+drop table emp145;
+
+create table emp145
+( num  number(10),
+ fruit   varchar2(10) );
+
+insert into emp145 values (1, '사과');
+insert into emp145 values (2, '바나나');
+insert into emp145 values (3, '오렌지');
+commit;
+
+select * from emp145;
+
+set serveroutput on
+set verify off
+declare
+ v_name1 emp145.fruit%type; 
+ v_name2 emp145.fruit%type;
+ 
+begin 
+    for i in 1 .. 3 loop
+     for j in 1 .. 3 loop
+        select fruit into v_name1 from emp145 where num =i;
+        select fruit into v_name2 from emp145 where num =j;
+        if i != j then
+         dbms_output.put_line(v_name1 || ', ' || v_name2);
+        end if;
+      end loop;
+     end loop; 
+end;
+/
+
+-- emp145 drop 후 create 후 insert 데이터값 진행
+-- 순열이란 서로 다른 n개 중에서 r개를 택하여 일렬로 배열하는 것 (permutation)
+-- 위 예제는 3개 중에서 2개 택하기, 서로 같은 값이 아닐 때, 가능한 경우의 수 예시를 나열하는 것
+-- 외부변수없이 바로 내부변수 선언
+```
+
+#### 157. 수학식 구현하기 (조합)
+```sql
+set serveroutput on
+set verify off
+declare
+ v_name1 emp145.fruit%type; 
+ v_name2 emp145.fruit%type;
+ 
+begin 
+    for i in 1 .. 3 loop
+     for j in 1 .. 3 loop
+        select fruit into v_name1 from emp145 where num =i;
+        select fruit into v_name2 from emp145 where num =j;
+         dbms_output.put_line(v_name1 || ', ' || v_name2);
+      end loop;
+     end loop; 
+end;
+/
+
+-- 조합이란 서로 다른 n개의 원소 중에서 r개를 선택하여 만든 모임 (combination)
+```
+
+#### 158. 기초 통계 구현하기 (평균값)
+5개의 숫자를 입력받아 5개 숫자의 평균값을 출력
+```sql
+set serveroutput on
+set verify off
+accept p_arr prompt '숫자를 입력하세요~'
+
+declare
+    type arr_type is varray(5) of number(10); 
+    v_num_arr   arr_type := arr_type(&p_arr);
+    v_sum number(10) := 0;
+    v_cnt number(10) := 0;
+    
+begin
+    for i in 1.. v_num_arr.count loop
+        v_cnt := v_cnt +1;
+        v_sum := v_sum +v_num_arr(i);
+    end loop;
+     dbms_output.put_line(v_sum/v_cnt);
+
+end;
+/
+
+-- loop문, 배열변수를 활용하여 평균값 통계식 구현
+-- 배열변수 p_arr, v_num_arr, 할당값 arr_type(&p_arr), 5개의 숫자형 데이터 varray(5) of number(10)
+-- 5개의 숫자 저장할 메모리 영역 변수 : 배열변수
+```
+
+#### 159. 기초 통계 구현하기 (중앙값)
+홀수개의 숫자를 입력받으면 가운데값 출력, 짝수개의 숫자 입력받으면 가운데 2개의 평균값 출력
+```sql
+set serveroutput on
+set verify off
+accept p_arr prompt '숫자를 입력하세요~'
+
+declare
+    type arr_type is varray(10) of number(10);
+    v_num_arr arr_type := arr_type(&p_arr);
+    v_n number(10);
+    v_medi number(10,2);
+    
+begin
+    v_n := v_num_arr.count;
+    if mod(v_n,2) = 1 then
+        v_medi := v_num_arr((v_n+1)/2 );
+    else
+     v_medi := (  v_num_arr((v_n)/2 ) + v_num_arr((v_n)/2+1)  ) /2;
+    end if;
+    dbms_output.put_line(v_medi);
+end;
+/
+
+-- n개의 숫자값을 담는 배열 변수형 타입을 선언한 후, n개보다 적은 숫자값을 입력해도 됨.
+-- loop문 없이 if then, else 문을 활용해 PL/SQL 프로그래밍 코드 구현 
+-- 내부 배열변수 : v_num_arr(카운팅된 숫자)
+-- v_n : declare절에서 데이터 타입만 선언하고, begin절에서 입력숫자 counting 지정
+-- v_medi : 중앙값
+```
+
+#### DAY 21. REVIEW
+Procedual Language in SQL is tricky but efficiency 
