@@ -3384,3 +3384,256 @@ end;
 
 #### DAY 21. REVIEW
 Procedual Language in SQL is tricky but efficiency 
+
+#### 160. 기초 통계 구현하기 (최빈값)
+입력받은 숫자들을 배열 변수에 담고 '숫자들의 값'을 카운트한 값들 중 최대값 : 최빈값
+```sql
+accept p_num1 prompt '데이터를 입력하세요~'
+declare
+    type array_t is varray(10) of number(10);
+    v_array array_t := array_t(&p_num1);
+    v_cnt number(10);
+    v_tmp number(10);
+    v_max number(10) := 0;
+    v_tmp2 number(10);
+    
+begin
+    for i in 1.. v_array.count loop
+        v_cnt := 1;
+        for j in i+1 .. v_array.count loop
+            if v_array(i) = v_array(j) then
+                v_tmp := v_array(i);
+                v_cnt := v_cnt +1;
+            end if;
+        end loop;
+        
+        if v_max <= v_cnt then
+            v_max := v_cnt;
+            v_tmp2 := v_tmp;
+        end if;
+        end loop;
+dbms_output.put_line ('최빈값은 '|| v_tmp2 ||'이고' || v_max || '개입니다.');
+end;
+/
+            
+-- type 배열변수타입명 is varray(변수갯수) of 데이터 타입           
+-- 배열변수명 배열변수타입명 := 배열변수타입명(&외부 배열변수)
+-- 배열변수명(순서) : 해당 순서로 입력한 변수 
+```
+
+#### 161. 기초 통계 구현하기 (분산과 표준편차 v_var)
+먼저 평균값을 구한 후, 각각의 입력값과 평균값 차의 제곱을 모두 더한 뒤, 숫자들의 갯수를 나누면 분산값 (루트 분산값이 표준편차)
+```sql
+set serveroutput on
+set verify off
+accept p_arr prompt '숫자를 입력하세요~'
+
+declare
+    type arr_type is varray(10) of number(10);
+    v_num_arr arr_type := arr_type(&p_arr);
+    v_sum number(10,2) := 0;
+    v_cnt number(10,2) := 0;
+    v_avg number(10,2) := 0;
+    v_var number(10,2) := 0;
+    
+    
+begin
+    for i in 1.. v_num_arr.count loop
+        v_sum := v_sum + v_num_arr(i);
+        v_cnt := v_cnt + 1;
+    end loop;
+    
+    v_avg := v_sum/v_cnt;
+    
+    for i in 1..v_num_arr.count loop
+        v_var := v_var + power(v_num_arr(i) - v_avg, 2);
+    end loop;    
+    
+    v_var := v_var/ v_cnt;
+    
+dbms_output.put_line('분산값은: ' || v_var);
+dbms_output.put_line('표준편자는: ' || round(sqrt(v_var)));
+
+end;
+/
+
+-- 분산 : 데이터의 흩어진 정도를 나타내는 지표로 편차 제곱의 합
+-- 2번의 for loop문 : 입력값의 합을 구하는 loop문, 입력값과 평균값의 차이를 계속 더하는 loop문 
+-- 루트값을 구하는 sqrt함수
+```
+
+#### 162. 기초 통계 구현하기 (공분산 v_var)
+```sql
+accept p_arr1 prompt '키를 입력하세요~'
+accept p_arr2 prompt '체중을 입력하세요~'
+
+declare
+    type arr_type is varray(10) of number(10,2);
+    v_num_arr1 arr_type := arr_type(&p_arr1);
+    v_sum1 number(10,2) := 0;
+    v_avg1 number(10,2) := 0;
+    
+    v_num_arr2 arr_type := arr_type(&p_arr2);
+    v_sum2 number(10,2) := 0;
+    v_avg2 number(10,2) := 0;
+    
+    v_cnt number(10,2) := 0;
+    v_var number(10,2) := 0;
+
+begin
+    v_cnt := v_num_arr1.count;
+    
+    for i in 1 .. v_num_arr1.count loop
+        v_sum1 := v_sum1 + v_num_arr1(i);
+    end loop;
+    
+    v_avg1 := v_sum1 /v_cnt;
+    
+    for i in 1 .. v_num_arr2.count loop
+        v_sum2 := v_sum2 + v_num_arr2(i);
+    end loop;
+    
+    v_avg2 := v_sum2 /v_cnt;
+    
+    for i in 1 .. v_num_arr2.count loop
+        v_var := v_var + (v_num_arr1(i) - v_avg1) * (v_num_arr2(i) - v_avg2) / v_cnt;
+    end loop;    
+    
+    dbms_output.put_line('공분산 값은 ' || v_var);
+end;
+/
+-- 공분산 : 두 개의 변량 사이의 상관관계를 수치화, 공분산이 0보다 크면 양의 상관, 0보다 작으면 음의 상관관계
+-- PL/SQL 절차적 언어로 거의 R, Python 와 다름없는 통계값 출력, 기본 지식인 비절차적 쿼리문 대비 좀 더 깊은 원리 이해가 필요할 듯 (w/ SQL 전문가 가이드)
+```
+
+#### 163. 기초 통계 구현하기 (상관계수 v_corr)
+```sql
+set serveroutput on
+set verify off
+accept p_arr1 prompt '키를 입력하세요~'
+accept p_arr2 prompt '체중을 입력하세요~'
+
+declare
+    type arr_type is varray(10) of number(10,2);
+    v_num_arr1 arr_type := arr_type(&p_arr1);
+    v_sum1 number(10,2) := 0;
+    v_avg1 number(10,2) := 0;
+    
+    v_num_arr2 arr_type := arr_type(&p_arr2);
+    v_sum2 number(10,2) := 0;
+    v_avg2 number(10,2) := 0;
+    
+    v_cnt number(10,2) := 0;
+    cov_var number(10,2) := 0;
+
+    v_num_arr1_var  number(10,2) := 0;
+    v_num_arr2_var  number(10,2) :=0;
+    v_corr          number(10,2) :=0;
+    
+begin
+    v_cnt := v_num_arr1.count;
+    
+    for i in 1 .. v_num_arr1.count loop
+        v_sum1 := v_sum1 + v_num_arr1(i);
+    end loop;
+    
+    v_avg1 := v_sum1 /v_cnt;
+    
+    for i in 1 .. v_num_arr2.count loop
+        v_sum2 := v_sum2 + v_num_arr2(i);
+    end loop;
+    
+    v_avg2 := v_sum2/ v_cnt;
+    
+    for i in 1 .. v_num_arr2.count loop
+        cov_var := cov_var + (v_num_arr1(i) - v_avg1) * (v_num_arr2(i) - v_avg2) / v_cnt;
+        v_num_arr1_var := v_num_arr1_var + power(v_num_arr1(i) - v_avg1,2);
+        v_num_arr2_var := v_num_arr2_var + power(v_num_arr2(i) - v_avg2,2);
+    end loop;    
+    
+        v_corr := cov_var /sqrt(v_num_arr1_var *v_num_arr2_var);
+         dbms_output.put_line('상관관계는 :' || v_corr );
+end;
+/
+
+-- 상관관계 분석은 한 변수의 변화에 따른 다른 변수의 변화 정도와 방향 '예측', +1/-1 강한 상관관계, 0은 아주 약한 상관관계
+-- 분산(표준편차) 개념 → 공분산 개념 → 상관계수 개념
+```
+
+#### 164. 기초 통계 구현하기 (확률)
+dbms_random 패키지로 동전을 던졌을 때 확률 50% 값 출력
+
+```sql
+set serveroutput on
+set verify off
+
+declare 
+    v_loop number(10) := 10000;
+    v_coin number ;
+    v_0 number(10) := 0;
+    v_1 number(10) := 0;
+    
+begin
+    for i in 1 .. v_loop loop
+    
+        select round(dbms_random.value(1,2)) into v_coin
+         from dual;
+        
+        if v_coin = 1 then
+            v_0 := v_0 +1;
+            
+        else v_1 := v_1 +1;
+        
+        end if;
+    end loop;
+
+    dbms_output.put_line('동전 앞면이 나올 확률 : ' || round(v_0/v_loop,2));
+    dbms_output.put_line('동전 뒷면이 나올 확률 : ' || round(v_1/v_loop,2));    
+    
+end;
+/
+
+-- 교재가 나와있지 않더라도, set serveroutput on 작성해야 함. 그래야 dbms_output 결과가 워크시트창에 노출됨
+```
+
+#### 165. 기초 통계 구현하기 (확률2)
+dbms_random 패키지를 2번 사용하여 동전 2개를 던져 둘다 앞면, 둘다 뒷면, 각각 한면씩 나오는 확률을 구현
+```sql
+set serveroutput on
+set verify off
+
+declare 
+    v_loop number(10) := 10000;
+    v_coin1 number(10) ;
+    v_coin2 number(10) ;
+    v_0 number(10) := 0;
+    v_1 number(10) := 0;
+    v_2 number(10) := 0;    
+
+begin
+    for i in 1 .. v_loop loop
+    
+        select round(dbms_random.value(1,2)), round(dbms_random.value(1,2)) into v_coin1, v_coin2
+         from dual;
+        
+        if v_coin1 = 1 and v_coin2 = 1 then
+            v_0 := v_0 +1;
+            
+        elsif v_coin1 = 2 and v_coin2 = 2 then
+            v_1 := v_1 +1;
+        else
+            v_2 := v_2 +1;
+        end if;
+    end loop;
+
+    dbms_output.put_line('동전 둘다 앞면이 나올 확률 : ' || round(v_0/v_loop,2));
+    dbms_output.put_line('동전 둘다 뒷면이 나올 확률 : ' || round(v_1/v_loop,2));    
+    dbms_output.put_line('동전 한 면이 나올 확률 : ' || round(v_2/v_loop,2));    
+end;
+/
+
+-- 왜 동전 한 면이 나올 확률이 0.51이지...?
+```
+
+#### DAY 22. REVIEW
+1st Studyng and Reading, 2nd should be deeer
