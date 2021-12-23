@@ -3636,4 +3636,154 @@ end;
 ```
 
 #### DAY 22. REVIEW
-1st Studyng and Reading, 2nd should be deeer
+1st Studyng and Reading, 2nd should be deeper
+
+
+#### 166. 기초 통계 구현하기 (이항 분포)
+동전 던지기 확률을 사용자 정의 함수로 생성, 계층형 질의문으로 구현
+```sql
+create or replace function mybin (p_h in number)
+return number
+is
+    v_h     number(10) := p_h;
+    v_sim   number(10) := 100000;
+    v_cnt   number(10) := 0;
+    v_cnt2  number(10) := 0;
+    v_res   number(10,2);
+    
+begin
+    for n in 1 ..v_sim loop
+    v_cnt := 0;
+        for i in 1..10 loop
+            if dbms_random.value <0.5 then
+                v_cnt := v_cnt+1;
+            end if;
+        end loop;
+        if v_cnt = v_h then
+            v_cnt2 := v_cnt2 +1;
+        end if;
+    end loop;
+    
+    v_res := v_cnt2 /v_sim;
+    return v_res;
+    
+end;
+/
+
+-- 이항 확률 분포 : 한 번 이상 반복 실시한 베르누이 시행 결과의 합을 변수의 값으로 하는 확률변수의 분포 
+-- 동전 던지기 10번을 총 N번(100,000번) 반복하는 베르누이 시행
+-- 동전던지기 경우의 수 발생 : dbms_random.value < 0.5
+-- v_res 변수에 담긴 확률 값을 "리턴"
+```
+
+#### 167. 기초 통계 구현하기 (정규분포)
+난수를 생성하여 dbms_random 패지키로 정규 확률 분호 구현
+```sql
+create or replace procedure probn
+ (p_mu  in number,
+  p_sig in number,
+  p_bin in number)
+is
+ type arr_type is varray(9) of number(30);
+ 
+ v_sim  number(10) := 100000;
+ v_rv   number(20,7);
+ v_mu   number(10) : p_mu;
+ v_sig  number(10) : p_sig;
+ v_nm   arr_type := arr_type('',0,0,0,0,0,0,0,'');
+ v_cnt  arr_type := arr_type(0,0,0,0,0,0,0,0);
+ v_rg   arr_type := arr_type(-power(2,31), -3, -2, -1, 0, 1,2,3, power(2,32));
+ 
+begin
+    for i in v_nm.first+1 .. v_nm.last-1 loop
+        v_nm(i) := v_mu -3*p_bin + (i-2)p_bin;
+    end loop;
+    
+    for i in 1 .. v_sim loop
+        v_rv := dbms_random.normal * v_sig + v_mu;
+        
+    for i in 2 .. v_rg.count loop
+        if v_rv >= v_mu + v_rg(i-1)*p_bin  and v_rv < v_mu + v_rg(i-1)*p_bin   then
+            v_cnt(i-1) := v_cnt(i-1) +1;
+        end if;    
+    end loop;  
+ end loop;   
+    
+    for i in 1 .. v_cnt.count loop
+        dbms_output.put_line(rpad (v_nm(i)|| '~'||v_nm(i+1),10,' ') || lpad('★' , trunc((v_cnt(i)/v_sim)*100), '★'));
+        
+  end loop;   
+  end;
+  /
+ 
+ /
+-- 정규 분포 : 키, 몸무게, 제품 수명 등 표본을 크게 추출한 자료들이 좌우대칭 종 모양의 연속 확률 분포.
+-- 변수값 := dbms_random.normal*표준편차 + 평균;
+-- SQL 중고급의 길은 아직 멀고 험난하구나... 가보자고~
+```
+
+#### 168. PL/SQL로 알고리즘 문제 풀기 (삼각형 출력) 
+숫자를 입력받아 삼각형을 출력하는 PL/SQL문을 학습 (Lpad 활용)
+```sql
+set serveroutput on
+accept p_num prompt '숫자를 입력하세요~'
+
+declare
+    v_cnt number(10) := 0;
+    
+begin
+    while v_cnt < &p_num loop
+     v_cnt := v_cnt + 1;
+     dbms_output.put_line(Lpad('★',v_cnt,'★'));
+    end loop;
+end;
+/
+
+-- 예제 113은 with절과 계층형 질의문은 사용한 SQL 쿼리문이며, 위 예제는 while loop문을 사용한 PL/SQL 프로시저 쿼리문이다.
+-- v_cnt가 &p_num보다 작을 동안에만 while loop문이 수행됨 
+
+#### 168. PL/SQL로 알고리즘 문제 풀기 (사각형 출력) 
+가로, 세로 입력값을 받아 사각형을 출력하는 PL/SQL문 작성 
+
+set serveroutput on
+accept p_a prompt '가로를 입력하세요~'
+accept p_b prompt '세로를 입력하세요~'
+
+begin
+    for i in 1 .. &p_b loop
+    dbms_output.put_line(lpad('★',&p_b,'★'));
+    end loop;
+end;
+/
+
+-- 내부 변수 없이 외부 변수만으로 for loop문 작성이 가능함
+-- 예제 168의 경우, 직각삼각형이라 while loop문, v_cnt에 점점 커지는 수 할당이 필요했음
+```
+
+#### 170. PL/SQL로 알고리즘 문제 풀기 (피타고라스의 정리)
+if문과 power함수 활용하여 피타고라스의 정리를 PL/SQL로 구현
+```sql
+set serveroutput on
+accept p_a prompt '밑변을 입력하세요~'
+accept p_b prompt '높이를 입력하세요~'
+accept p_c prompt '빗변을 입력하세요~'
+
+declare
+    v_a number(10) := &p_a;
+    v_b number(10) := &p_b;
+    v_c number(10) := &p_c;
+    
+begin
+    if
+    ( power(v_a,2) + power(v_b,2) )= power(v_c,2) then
+    dbms_output.put_line('직각삼각형이 맞아요');
+    else dbms_output.put_line('직각삼각형이 아니에요');
+    end if;
+end;
+/
+
+-- 교재에 쓰여진대로가 아닌, 응용력이 발휘되고 있음. 나 성장한건가??!!
+```
+
+#### DAY 23. REVIEW
+Follow my gut, but still stick to the basic
