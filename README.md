@@ -3787,3 +3787,109 @@ end;
 
 #### DAY 23. REVIEW
 Follow my gut, but still stick to the basic
+
+
+#### 171. PL/SQL로 알고리즘 문제 풀기 (팩토리얼)
+```sql
+set serveroutput on
+set verify off
+accept p_num1 prompt '숫자를 입력하세요~'
+
+declare
+    v_num1  number(10) := 1;
+    v_num2  number(10) := 1;
+    
+begin
+    loop
+     v_num1 := v_num1 + 1;
+     v_num2 := v_num2*v_num1;
+     exit when v_num1 = &p_num;
+end loop;
+    dbms_output.put_line(v_num2);
+end;
+/
+
+-- 팩토리얼이란, 1에서 n까지의 모든 자연수의 곱 '!'
+-- 입력값에서 거꾸로 자연수를 곱하는 것이 아니라 1에서 입력값까지 자연수를 곱하는 것으로 변형 성공!
+```
+
+#### 173. PL/SQL로 알고리즘 문제 풀기 (최소 공약수)
+mod 함수로 두 입력값을 특정 숫자로 나눈 나머지 값을 출력하여 두 수가 0이 되는 숫자를 찾습니다.
+```sql
+set serveroutput on
+set verify off
+accept p_num1 prompt '첫 번째 숫자를 입력하세요~'
+accept p_num2 prompt '두 번째 숫자를 입력하세요~'
+
+declare
+    v_num1  number(10) := &p_num1;
+    v_num2  number(10) := &p_num2;
+    v_cnt   number(10);
+    v_mod   number(10);
+    v_result number(10);    
+    
+begin
+    for i in reverse 1 .. v_num1 loop
+     v_mod := mod(v_num1, i) + mod(v_num2,i);
+     v_cnt := i;
+     exit when v_mod = 0;
+    end loop;
+        v_result := v_cnt * (v_num1/ v_cnt) * (v_num2/ v_cnt);
+        dbms_output.put_line(v_result);
+end;
+/
+
+-- v_cnt가 최대공약수 역할을 함, v_mod는 두 입력값이 0으로 나누어 떨어지는지 판단하기 위한 변수
+-- loop문을 종료한 뒤, v_result에 최소공배수 값을 할당, 이후 dbms_output 패키지로 최소공배수 값 노출함
+```
+
+#### 174. PL/SQL로 알고리즘 문제 풀기(버블 정렬)
+5개의 입력값을 버블 정렬로 정렬하는 PL/SQL문 작성
+```sql
+set serveroutput on
+set verify off
+accept p_num prompt '정렬할 숫자 5개를 입력하세요~'
+
+declare
+    type array_type is varray(10) of number(10);
+    array array_type := array_type();
+    tmp number := 0;
+    v_num varchar2(50) := '&p_num';
+    v_cnt number := regexp_count(v_num, ' ')+1;
+    
+begin
+    array.extend(v_cnt);
+    dbms_output.put('정렬 전 숫자 :');
+    
+    for i in 1 .. array.count loop
+        array(i) := regexp_substr('&p_num' , '[^ ]+' , 1, i);
+     dbms_output.put(array(i)||' ');
+    end loop;
+    dbms_output.new_line;
+    
+    for i on 1 .. array.count-1 1oop
+       for j in i+1 .. array.count loop
+            if array(i) > array(j) then
+                tmp = array(i);
+                array(i) := array(j);
+                array(j) := tmp;
+            end if;
+        end loop;
+     end loop;
+      dbms_output.put('정렬 후 숫자 :');
+   
+    for i in 1 .. array.count loop
+      dbms_output.put(array(i)||' ');
+    end loop;
+      dbms_output.new_line;
+    
+end;
+/
+-- 버블 정렬이란, 인접한 두 요소를 비교하여 서로 교환하며 정렬
+-- set verify off : declare절 이후 치환변수에 값 할당 과정을 표현한 메세지 출력 X
+-- regexp_count(v_num, ' ') : 공백의 갯수를 구하는 쿼리문
+-- regexp_substr('&p_num' , '[^ ]+' , 1 i) : 5개 각자의 숫자로 떼어놓기..?
+```
+
+#### DAY 24. REVIEW
+Bubble Sort Algorithm, my mind get bubbled
