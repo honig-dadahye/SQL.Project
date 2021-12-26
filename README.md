@@ -4047,3 +4047,626 @@ end;
 
 #### DAY 25. REVIEW
 Between basic SQL and advanced PL/SQL (Monte Carlo algorithm, Greedy algorithm)
+
+
+#### 179. SQL로 머신러닝 구현하기(NAIVEBAUES)
+dbms_data_mining 패키지로 나이브 베이즈 러닝머신 모델 생성
+```sql
+-- 1)학습 데이터 테이블 생성
+Drop table naive_flu_train;
+
+Create table naive_flu_train
+ (patient_id    number(10),
+  chills        varchar2(2),
+  runny_nose    varchar2(2),
+  headache      varchar2(10),
+  fever         varchar(2),
+  flu           varchar(2));
+  
+INSERT INTO NAIVE_FLU_TRAIN VALUES(1,'Y','N','MILD','Y','N');
+INSERT INTO NAIVE_FLU_TRAIN VALUES(2,'Y','Y','NO'	,'N', 'Y');
+INSERT INTO NAIVE_FLU_TRAIN VALUES(3,'Y','N','STRONG','Y','Y');
+INSERT INTO NAIVE_FLU_TRAIN VALUES(4,'N','Y','MILD','Y','Y');
+INSERT INTO NAIVE_FLU_TRAIN VALUES(5,'N','N','NO','N','N');
+INSERT INTO NAIVE_FLU_TRAIN VALUES(6,'N','Y','STRONG','Y','Y');
+INSERT INTO NAIVE_FLU_TRAIN VALUES(7,'N','Y','STRONG','N','N');
+INSERT INTO NAIVE_FLU_TRAIN VALUES(8,'Y','Y','MILD','Y','Y');
+COMMIT;
+
+-- 2)테스트 데이터 테이블 생성
+Drop table naive_flu_test;
+
+Create table naive_flu_test
+ (patient_id    number(10),
+  chills        varchar2(2),
+  runny_nose    varchar2(2),
+  headache      varchar2(10),
+  fever         varchar(2),
+  flu           varchar(2));
+  
+INSERT INTO NAIVE_FLU_TEST VALUES(9,'Y','N','MILD','N',NULL);
+COMMIT;  
+
+-- 3)머신러닝 모델 환경 설정 : 기본 구조의 테이블 생성
+Drop table settings_glm;
+
+Create table settings_glm
+as
+Select  *
+From    Table (dbms_data_mining.get_default_settings)
+Where   setting_name like '%GLM%';
+
+Begin
+    Insert into settings_glm
+        values(dbms_data_mining.algo_name, 'ALGO_NAIVE_BAYES');
+    Insert into settings_glm
+        values(dbms_data_mining.prep_auto, 'ON');
+    commit;
+end;    
+/
+
+-- 4)머신러닝 모델 생성
+Begin
+    dbms_data_mining.Drop_model ('MD_CLASSIFICATION_MODEL');
+END;
+/
+
+Begin
+    dbms_data_mining.Create_model(
+    model_name          => 'MD_CLASSIFICATION_MODEL',
+    mining_function     => dbms_data_mining.classification,
+    data_table_name     => 'naive_flu_train',
+    case_id_column_name => 'patient_id',
+    target_column_name  => 'flu',
+    settings_table_name => 'settings_glm');
+    
+END;
+/
+    
+-- 5)테스트 데이터의 예측값 확인    
+Select T.*,
+    Prediction(MD_CLASSIFICATION_MODEL using *) as 예측값
+        From naive_flu_test T;
+
+-- 오라클 내장 패지키 dbms_data_mining안 나이브 베이즈 알고리즘 프로그래밍이 내장되어 있음
+-- 머신러닝 구현 요소 : 머신러닝 모델 패키지, 학습/테스트 데이터(정답이 있는 데이터)
+-- 머신러닝 구현 과정 1)학습 데이터 테이블 생성 2)테스트 데이터 테이블 생성 3)머신러닝 모델 환경 설정 테이블 생성 4)머신러닝 모델 생성 5)테스트 데이터의 예측값 확인
+-- 머신러닝 모델 생성 시, dbms_data_mining 패키지의 create_model 프로시저 실행, 머신러닝의 목표 '분류' & 훈련 테이블의 식별 컬럼을 지정
+```
+
+#### 180. SQL로 머신러닝 구현하기 (NAIVEBAYES)
+accept 명령어로 입력값을 받는 머신러닝 모델 PL/SQL 프로그래밍 작성
+```sql
+set serveroutput on
+set verify off
+accept p_chills     prompt '오한이 있습니까(Y/N)?'
+accept p_runny_nose prompt '콧물이 있습니까(Y/N)?'
+accept p_head_ache  prompt '두통이 있습니까(strong/mild/no)?'
+accept p_fever      prompt '오한이 있습니까(Y/N)?'
+
+declare
+    v_pred  varchar2(20);
+    v_prob  number(10,2);
+    
+begin
+with test_data as
+    (select upper('&p_chills')     chills,
+            upper('&p_runny_nose') runny_nose,
+            upper('&p_head_ache')  head_ache,
+            upper('&p_fever')      fever
+     from   dual)
+     
+Select  Prediction(MD_CLASSIFICATION_MODEL using * ),
+        Prediction_probability (MD_CLASSIFICATION_MODEL using * ) into v_pred, v_prob 
+From    test_data;
+
+If v_pred = 'Y' then
+    dbms_output.put_line ('머신러닝이 예측한 결과: 독감입니다. 독감일 확률은' || round(v_prob,2) *100 || '%입니다.');
+    
+else
+    dbms_output.put_line ('머신러닝이 예측한 결과: 독감이 아닙니다. 독감이 아닐 확률은' || round(v_prob,2) *100 || '%입니다.');
+end if;
+
+END;
+/
+-- 예측값 v_pred과 예측확률 v_prob 선언
+
+#### 181. SQL로 머신러닝 구현하기 (naivebayes)
+훈련 데이터와 테스트 데이터를 9 대 1 비율로 나눠 머신러닝 모델 생성
+1)학습 데이터 테이블 생성 2)테스트 데이터 테이블 생성 3)머신러닝 모델 환경 설정 테이블 생성 4)머신러닝 모델 생성 5)테스트 데이터의 예측값 확인
+
+-- 1)학습 데이터 테이블 생성 
+DROP TABLE MUSHROOMS;
+
+CREATE TABLE MUSHROOMS 
+( ID               NUMBER(10),        
+TYPE               VARCHAR2(10),                    
+CAP_SHAPE	       VARCHAR2(10),      
+CAP_SURFACE	       VARCHAR2(10),      
+CAP_COLOR	       VARCHAR2(10),      
+BRUISES	           VARCHAR2(10),
+ODOR	           VARCHAR2(10),
+GILL_ATTACHMENT	   VARCHAR2(10),      
+GILL_SPACING	   VARCHAR2(10),      
+GILL_SIZE	       VARCHAR2(10),      
+GILL_COLOR	       VARCHAR2(10),      
+STALK_SHAPE	       VARCHAR2(10),      
+STALK_ROOT	       VARCHAR2(10),      
+STALK_SURFACE_ABOVE_RING      VARCHAR2(10),      
+STALK_SURFACE_BELOW_RING      VARCHAR2(10),      
+STALK_COLOR_ABOVE_RING         VARCHAR2(10),      
+STALK_COLOR_BELOW_RING	       VARCHAR2(10),      
+VEIL_TYPE	                   VARCHAR2(10),      
+VEIL_COLOR	                   VARCHAR2(10),      
+RING_NUMBER	                   VARCHAR2(10),      
+RING_TYPE	                   VARCHAR2(10),      
+SPORE_PRINT_COLOR	           VARCHAR2(10),      
+POPULATION	                   VARCHAR2(10),        
+HABITAT                        VARCHAR2(10) );
+
+-- 2)테스트 데이터 테이블 생성 (9대 1 비율)
+Drop table mushrooms_training;
+
+Create table mushrooms_training
+as
+select *
+from   mushrooms
+where id < 7312;
+
+Drop table mushrooms_test;
+
+Create table mushrooms_test
+as
+select *
+from   mushrooms
+where id >= 7312;
+
+-- 3)머신러닝 모델 환경 설정 테이블 생성 
+Drop table settings_glm;
+
+Create table settings_glm
+as
+select *
+    from   table(dbms_data_mining.get_default_settings)
+    where  setting_name like '%glm%';
+    
+Begin
+    Insert into settings_glm
+        values(dbms_data_mining.algo_name, 'ALGO_NAIVE_BAYES');
+    Insert into settings_glm
+        values(dbms_data_mining.prep_auto, 'ON');
+        
+    commit;
+END;
+/
+    
+-- 4)머신러닝 모델 생성 
+Begin
+    dbms_data_mining.drop_model('MD_CLASSIFICATION_MODEL');
+END;
+/
+
+Begin
+    dbms_data_mining.create_model(
+    model_name          => 'MD_CLASSIFICATION_MODEL',
+    mining_function     => dbms_data_mining.classification,
+    data_table_name     => 'mushrooms_training',
+    case_id_column_name => 'ID',
+    target_column_name  => 'TYPE',
+    settings_table_name => 'settings_glm');
+    
+END;
+/
+    
+-- 5)테스트 데이터의 예측값 & 정확도 확인
+Select ID,
+    Prediction (MD_CLASSIFICATION_MODEL using *) 예측값
+        From mushrooms_test;
+        
+Select  sum(decode(p.model_predict_respond, I.type, 1, 0)) / count (*) 정확도
+From    (
+        select ID, Prediction (MD_CLASSIFICATION_MODEL using *) model_predict_respond
+            From mushrooms_test T)  P,
+        Mushrooms                   I
+        Where p.id = i.id;
+
+-- 머신러닝 패키지를 호출하고, 알고리즘을 사용하겠다고 지정하는 PL/SQL 작성
+-- 나이브 베이즈 모델을 위한 여러가지 환경 설정값들은 자동으로 최적화 : prep_auto ON 설정
+-- 머신러닝 예측값 정확도 vs 예측 확률 probability
+```
+
+#### 182. SQL로 머신러닝 구현하기 (Decision tree 의사결정나무)
+```sql
+-- 1~2)학습/테스트 데이터 테이블 생성 
+DROP TABLE HR_DATA;
+
+CREATE TABLE HR_DATA
+(  EMP_ID                        NUMBER,
+   SATISFACTION_LEVEL       NUMBER,
+   LAST_EVALUATION          NUMBER,
+   NUMBER_PROJECT          NUMBER,
+   AVERAGE_MONTLY_HOURS  NUMBER,
+   TIME_SPEND_COMPANY     NUMBER,
+   WORK_ACCIDENT              NUMBER,
+   LEFT                               NUMBER,
+   PROMOTION_LAST_5YEARS  NUMBER,
+   SALES                     VARCHAR2 (20),
+   SALARY                   VARCHAR2 (20) );
+   
+Create table HR_DATA_Training 
+as
+Select  *
+From    HR_DATA
+Where   emp_id < 10500;
+
+Create table HR_DATA_Test
+as
+Select  *
+From    HR_DATA
+Where   emp_id >= 10500;
+ 
+-- 3)머신러닝 모델 환경 설정 테이블 생성 
+Drop table dtsettings;
+
+Create table dtsettings
+as
+Select   *
+From     Table (dbms_data_mining.get_default_settings)
+Where    setting_name like '%glm%';
+
+Begin
+    Insert into dtsettings
+     values('ALGO_NAME', 'ALGO_DECISION_TREE');
+    Insert into dtsettings
+     values(dbms_data_mining.Tree_impurity_metric, 'TREE_IMPURITY_ENTROPY');
+commit;
+END;
+/
+
+-- 4)머신러닝 모델 생성 
+Begin
+    dbms_data_mining.drop_model('DT_MODEL');
+END;
+/
+
+Begin
+    dbms_data_mining.create_model (
+        model_name          => 'DT_MODEL',
+        mining_function     => dbms_data_mining.classification,
+        data_table_name     => 'HR_DATA_Training',
+        case_id_column_name => 'EMP_ID',
+        target_column_name  => 'LEFT',
+        settings_table_name => 'dtsettings');
+END;
+/  
+    
+-- 5)테스트 데이터의 예측값
+Select T.emp_id, T.left 실제값,
+    Prediction (DT_model using *) 예측값,
+    Prediction_Probability (DT_model using *) "모델이 예측한 확률"
+From HR_DATA_Test T;    
+
+-- 6)정확도(모델 성능) 확인
+DROP TABLE HR_DATA_TEST_MATRIX_2;
+      
+CREATE OR REPLACE VIEW   VIEW_HR_DATA_TEST
+AS
+SELECT EMP_ID, PREDICTION(DT_MODEL USING *) PREDICTED_VALUE,
+          PREDICTION_PROBABILITY(DT_MODEL USING * ) PROBABILITY
+  FROM HR_DATA_TEST;
+  
+SET SERVEROUTPUT ON 
+
+DECLARE
+   V_ACCURACY NUMBER;
+BEGIN
+   DBMS_DATA_MINING.COMPUTE_CONFUSION_MATRIX (
+      ACCURACY           => V_ACCURACY,
+      APPLY_RESULT_TABLE_NAME      => 'VIEW_HR_DATA_TEST',
+      TARGET_TABLE_NAME       => 'HR_DATA_TEST',
+      CASE_ID_COLUMN_NAME       => 'EMP_ID',
+      TARGET_COLUMN_NAME       => 'LEFT',
+      CONFUSION_MATRIX_TABLE_NAME => 'HR_DATA_TEST_MATRIX_2',
+      SCORE_COLUMN_NAME       => 'PREDICTED_VALUE',
+      SCORE_CRITERION_COLUMN_NAME => 'PROBABILITY',
+      COST_MATRIX_TABLE_NAME      => NULL,
+      APPLY_RESULT_SCHEMA_NAME    => NULL,
+      TARGET_SCHEMA_NAME       => NULL,
+      COST_MATRIX_SCHEMA_NAME     => NULL,
+      SCORE_CRITERION_TYPE       => 'PROBABILITY');
+   DBMS_OUTPUT.PUT_LINE('**** MODEL ACCURACY ****: ' || ROUND(V_ACCURACY,4));
+END;
+/
+
+-- 의사결정나무 머신러닝 모델이란, 머신러닝 지도학습 중 하나로 의사결정 규칙(decision rule)을 나무구조로 도표화하여 분류/예측을 수행
+-- 퇴사 여부에 영향을 미치는 요소를 예측하기 위해, 근무시간/평균 한달 근무시간/근무 만족도/지난해 평가지수/프로젝트 수/지난 5년간 승진횟수/급여 테이블 생성
+-- 의사결정나무의 핵심 엔진 파라미터 엔트로피 설정 : dbms_data_mining.Tree_impurity_metric, 'Tree_impurity_entropy'
+-- 머신러닝 모델 환경 설정을 담은 테이블에 오류가 있을 경우, 머신러닝 모델 생성이 불가함 (알고리즘, 핵심엔진 파라미터 대문자로 꼭 작성할 것)
+-- 머신러닝 정확도/성능을 출력하는 프로시저 :  dbms_data_mining.compute_confusion_matrix
+```
+
+#### 183. SQL로 머신러닝 구현하기 (Decision Tree)
+```sql
+-- 3)의사결정 머신러닝 모델 환경 설정 재구성 
+Drop table dtsettings2;
+
+Create table dtsettings2
+as
+Select   *
+From     Table (dbms_data_mining.get_default_settings)
+Where    setting_name like '%glm%';
+
+Begin
+    Insert into dtsettings2
+     values('ALGO_NAME', 'ALGO_DECISION_TREE');
+    Insert into dtsettings2
+     values(dbms_data_mining.Tree_impurity_metric, 'TREE_IMPURITY_ENTROPY');
+    Insert into dtsettings2
+     values(dbms_data_mining.CLAS_MAX_SUP_BINS, 10000);
+    Insert into dtsettings2
+     values(dbms_data_mining.TREE_TERM_MAX_DEPTH, 20);
+commit;
+END;
+/
+
+-- 4)머신러닝 모델 생성 
+Begin
+    dbms_data_mining.drop_model('DT_MODEL2');
+END;
+/
+
+Begin
+    dbms_data_mining.create_model (
+        model_name          => 'DT_MODEL2',
+        mining_function     => dbms_data_mining.classification,
+        data_table_name     => 'HR_DATA_Training',
+        case_id_column_name => 'EMP_ID',
+        target_column_name  => 'LEFT',
+        settings_table_name => 'dtsettings2');
+END;
+/  
+
+-- 5)테스트 데이터의 예측값 & 정확도 확인
+DROP TABLE HR_DATA_TEST_MATRIX_2;
+      
+CREATE OR REPLACE VIEW   VIEW_HR_DATA_TEST2
+AS
+SELECT EMP_ID, PREDICTION(DT_MODEL USING *) PREDICTED_VALUE,
+          PREDICTION_PROBABILITY(DT_MODEL USING * ) PROBABILITY
+  FROM HR_DATA_TEST;
+  
+SET SERVEROUTPUT ON 
+
+DECLARE
+   V_ACCURACY NUMBER;
+BEGIN
+   DBMS_DATA_MINING.COMPUTE_CONFUSION_MATRIX (
+      ACCURACY           => V_ACCURACY,
+      APPLY_RESULT_TABLE_NAME      => 'VIEW_HR_DATA_TEST2',
+      TARGET_TABLE_NAME       => 'HR_DATA_TEST',
+      CASE_ID_COLUMN_NAME       => 'EMP_ID',
+      TARGET_COLUMN_NAME       => 'LEFT',
+      CONFUSION_MATRIX_TABLE_NAME => 'HR_DATA_TEST_MATRIX_2',
+      SCORE_COLUMN_NAME       => 'PREDICTED_VALUE',
+      SCORE_CRITERION_COLUMN_NAME => 'PROBABILITY',
+      COST_MATRIX_TABLE_NAME      => NULL,
+      APPLY_RESULT_SCHEMA_NAME    => NULL,
+      TARGET_SCHEMA_NAME       => NULL,
+      COST_MATRIX_SCHEMA_NAME     => NULL,
+      SCORE_CRITERION_TYPE       => 'PROBABILITY');
+   DBMS_OUTPUT.PUT_LINE('**** MODEL ACCURACY ****: ' || ROUND(V_ACCURACY,4));
+END;
+/
+   
+-- 머신러닝 성능 높이는 방법 1)의사결정트리의 개수를 파라미터로 조정하여 확대 2)의사결정트리의 깊이도 확대
+-- 1) 의사결정트리 개수 조정 : dbms_data_mining.CLAS_MAX_SUP_BINS, 10000
+-- 2) 의사결정트리 깊이 조정 : dbms_data_mining.TREE_TERM_MAX_DEPTH, 20
+```
+
+#### 184. SQL로 머신러닝 구현하기 (RANDOM FOREST)
+```sql
+-- 3)머신러닝 모델 환경 설정 테이블 생성 
+Drop   table dtsettings3; 
+
+Create table dtsettings3
+as 
+Select *
+    From   table (dbms_data_mining.get_default_settings)
+    where  setting_name like '%GLM%';
+    
+Begin
+    Insert into dtsettings3
+        values (dbms_data_mining.ALGO_NAME, 'ALGO_RANDOM_FOREST');
+    Insert into dtsettings3
+        values (dbms_data_mining.prep_auto, 'ON');
+        
+Commit;
+END;
+/
+
+-- 4)머신러닝 모델 생성 
+BEGIN
+    DBMS_DATA_MINING.DROP_MODEL('DT_MODEL3');
+END;
+/
+
+BEGIN
+    DBMS_DATA_MINING.CREATE_MODEL(
+        MODEL_NAME          => 'DT_MODEL3',
+        MINING_FUNCTION     => DBMS_DATA_MINING.CLASSIFICATION,
+        DATA_TABLE_NAME     => 'HR_DATA_Training',
+        CASE_ID_COLUMN_NAME => 'EMP_ID',
+        TARGET_COLUMN_NAME  => 'LEFT',
+        SETTINGS_TABLE_NAME => 'dtsettings3');
+END;
+/
+
+-- 5)테스트 데이터의 예측값 & 정확도 확인
+SELECT EMP_ID, LEFT,
+          PREDICTION(DT_MODEL3 USING *) PREDICTED_VALUE,
+          ROUND (PREDICTION_PROBABILITY(DT_MODEL3 USING * ),2) PROBABILITY
+  FROM HR_DATA_TEST T;
+  
+  
+DROP TABLE HR_DATA_TEST_MATRIX_3;
+      
+CREATE OR REPLACE VIEW   VIEW_HR_DATA_TEST3
+AS
+SELECT EMP_ID, PREDICTION(DT_MODEL3 USING *) PREDICTED_VALUE,
+          PREDICTION_PROBABILITY(DT_MODEL3 USING * ) PROBABILITY
+  FROM HR_DATA_TEST;
+  
+SET SERVEROUTPUT ON 
+
+DECLARE
+   V_ACCURACY NUMBER;
+BEGIN
+   DBMS_DATA_MINING.COMPUTE_CONFUSION_MATRIX (
+      ACCURACY           => V_ACCURACY,
+      APPLY_RESULT_TABLE_NAME      => 'VIEW_HR_DATA_TEST3',
+      TARGET_TABLE_NAME       => 'HR_DATA_TEST',
+      CASE_ID_COLUMN_NAME       => 'EMP_ID',
+      TARGET_COLUMN_NAME       => 'LEFT',
+      CONFUSION_MATRIX_TABLE_NAME => 'HR_DATA_TEST_MATRIX_3',
+      SCORE_COLUMN_NAME       => 'PREDICTED_VALUE',
+      SCORE_CRITERION_COLUMN_NAME => 'PROBABILITY',
+      COST_MATRIX_TABLE_NAME      => NULL,
+      APPLY_RESULT_SCHEMA_NAME    => NULL,
+      TARGET_SCHEMA_NAME       => NULL,
+      COST_MATRIX_SCHEMA_NAME     => NULL,
+      SCORE_CRITERION_TYPE       => 'PROBABILITY');
+   DBMS_OUTPUT.PUT_LINE('**** MODEL ACCURACY ****: ' || ROUND(V_ACCURACY,4));
+END;
+/
+     
+-- Random Forest 알고리즘은 Decision Tree의 분류보다 정확도를 개선시키기 위해, 여러개의 나무를 생성하여 각각 나무의 예측을 총 조합하여 결론을 내리는 구조
+```
+
+#### 185. SQL로 머신러닝 구현하기 (RANDOM FOREST)
+```sql
+-- 3)머신러닝 모델 환경 설정 재구성
+Create table dtsettings4
+as 
+Select *
+    From   table (dbms_data_mining.get_default_settings)
+    where  setting_name like '%GLM%';
+    
+Begin
+    Insert into dtsettings4
+        values (dbms_data_mining.ALGO_NAME, 'ALGO_RANDOM_FOREST');
+    Insert into dtsettings4
+        values (dbms_data_mining.prep_auto, 'ON');
+    Insert into dtsettings4
+        values (dbms_data_mining.CLAS_MAX_SUP_BINS, 254);
+                
+Commit;
+END;
+/
+
+-- 4)머신러닝 모델 생성 
+BEGIN
+    DBMS_DATA_MINING.DROP_MODEL('DT_MODEL4');
+END;
+/
+
+BEGIN
+    DBMS_DATA_MINING.CREATE_MODEL(
+        MODEL_NAME          => 'DT_MODEL4',
+        MINING_FUNCTION     => DBMS_DATA_MINING.CLASSIFICATION,
+        DATA_TABLE_NAME     => 'HR_DATA_Training',
+        CASE_ID_COLUMN_NAME => 'EMP_ID',
+        TARGET_COLUMN_NAME  => 'LEFT',
+        SETTINGS_TABLE_NAME => 'dtsettings4');
+END;
+/
+
+-- 5)테스트 데이터의 예측값 & 정확도 확인
+CREATE OR REPLACE VIEW   VIEW_HR_DATA_TEST4
+AS
+SELECT EMP_ID, PREDICTION(DT_MODEL4 USING *) PREDICTED_VALUE,
+          PREDICTION_PROBABILITY(DT_MODEL4 USING * ) PROBABILITY
+  FROM HR_DATA_TEST;
+  
+SET SERVEROUTPUT ON 
+
+DECLARE
+   V_ACCURACY NUMBER;
+BEGIN
+   DBMS_DATA_MINING.COMPUTE_CONFUSION_MATRIX (
+      ACCURACY           => V_ACCURACY,
+      APPLY_RESULT_TABLE_NAME      => 'VIEW_HR_DATA_TEST4',
+      TARGET_TABLE_NAME       => 'HR_DATA_TEST',
+      CASE_ID_COLUMN_NAME       => 'EMP_ID',
+      TARGET_COLUMN_NAME       => 'LEFT',
+      CONFUSION_MATRIX_TABLE_NAME => 'HR_DATA_TEST_MATRIX_4',
+      SCORE_COLUMN_NAME       => 'PREDICTED_VALUE',
+      SCORE_CRITERION_COLUMN_NAME => 'PROBABILITY',
+      COST_MATRIX_TABLE_NAME      => NULL,
+      APPLY_RESULT_SCHEMA_NAME    => NULL,
+      TARGET_SCHEMA_NAME       => NULL,
+      COST_MATRIX_SCHEMA_NAME     => NULL,
+      SCORE_CRITERION_TYPE       => 'PROBABILITY');
+   DBMS_OUTPUT.PUT_LINE('**** MODEL ACCURACY ****: ' || ROUND(V_ACCURACY,4));
+END;
+/
+    
+-- 랜덤 포레스트 머신러닝의 성능 개선하는 방법 : 머신러닝 환경 구성 단계에서 트리의 개수 확장 dbms_data_mining.CLAS_MAX_SUP_BINS
+```
+
+#### 186. SQL로 머신러닝 구현하기(RANDOM FOREST)
+```sql
+accept 명령어로 입력값을 받아 머신러닝 PL/SQL 프로그래밍 코드 작성
+
+SET SERVEROUTPUT ON
+SET VERIFY OFF
+
+ACCEPT P_SATIS PROMPT '회사 만족도는 어떻게 되시나요? 범위: 0~1 (예: 0.32) '
+ACCEPT P_EVALU PROMPT '마지막 근무 평가는 어떻게 되시나요? 범위:0~1 (예: 0.8) '
+ACCEPT P_PROJECT PROMPT '진행했던 프로젝트의 갯수는 어떻게 되시나요? (예: 3) '
+ACCEPT P_AVG_MONTH_HOURS PROMPT '월 평균 근무시간은 어떻게 되시나요? (예: 160)'
+ACCEPT P_TIME_SPEND_COMP PROMPT '근무년수는 어떻게 되나요? (예: 3) '
+ACCEPT P_WORK_ACC PROMPT '근무하는 동안 일으킨 사고 건수는? (예: 2)'
+ACCEPT P_PROMO_LAST_5Y PROMPT '지난 5년동안 승진한 횟수는? (예: 2) '
+PROMPT 'SALES/PRODUCT_MNG/ACCOUNTING/HR/IT/RANDD/TECHNICAL/MANAGEMENT/MARKETING/SUPPORT '
+ACCEPT P_SALES PROMPT '일하는 부서는 어디입니까? '
+ACCEPT P_SALARY PROMPT '월급의 수준은? (예: LOW/MEDIUM/HIGH) '
+
+DECLARE  
+   V_PRED    VARCHAR2(20);
+   V_PROB    NUMBER(10,2);
+
+BEGIN 
+WITH TEST_DATA AS ( SELECT UPPER('&P_SATIS') SATISFACTION_LEVEL,
+                                        UPPER('&P_EVALU') LAST_EVALUATION, 
+                                        UPPER('&P_PROJECT') NUMBER_PROJECT, 
+                                        UPPER('&P_AVG_MONTH_HOURS') AVERAGE_MONTLY_HOURS,
+                                        UPPER('&P_TIME_SPEND_COMP') TIME_SPEND_COMPANY,
+                                        UPPER('&P_WORK_ACC') WORK_ACCIDENT,
+                                        UPPER('&P_PROMO_LAST_5Y') PROMOTION_LAST_5YEARS,
+                                        UPPER('&P_SALES') SALES,
+                                        UPPER('&P_SALARY') SALARY
+                                FROM DUAL )
+                                
+SELECT PREDICTION(DT_MODEL4 USING *),
+       PREDICTION_PROBABILITY(DT_MODEL4 USING * ) into v_pred, v_prob
+  FROM TEST_DATA;                   
+  
+IF  V_PRED = 1  THEN 
+
+  DBMS_OUTPUT.PUT_LINE('머신러닝이 예측한 결과: 퇴사할 직원입니다. 퇴사할 확률은 ' || ROUND(V_PROB,2) * 100 || '%입니다');
+
+ELSE 
+
+  DBMS_OUTPUT.PUT_LINE('머신러닝이 예측한 결과: 퇴사할 직원이 아닙니다. 퇴사하지 않을 확률은 ' || ROUND(V_PROB,2) * 100 || '%입니다');
+
+END IF;
+
+END;
+/  
+
+-- 예측을 위한 입력값을 받은 뒤, 변수 선언 및 임시 테이블 생성(From Dual). 
+-- 머신러닝 모델 환경 설정 및 모델 생성했다면, 임시 테이블 활용해 바로 예측값 확인 가능
+```
+
+#### DAY 26. REVIEW
+Words learned from ADsP became the knowledge of SQL
