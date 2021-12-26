@@ -3893,3 +3893,157 @@ end;
 
 #### DAY 24. REVIEW
 Bubble Sort Algorithm, my mind get bubbled
+
+
+#### 175. PL/SQL로 알고리즘 문제 풀기 (삽입 정렬)
+```sql
+set serveroutput on
+set verify off
+accept p_num prompt '정렬할 숫자 5개를 입력하세요~'
+
+declare
+    type  array_t is varray(100) of number(10);
+    varray array_t := array_t();
+    v_temp   number(10);
+    
+begin
+    varray.extend(regexp_count('&p_num', ' ')+ 1) ;
+    
+    for i in 1 .. varray.count loop
+     varray(i) := to_number(regexp_substr('&p_num', '[^ ] +' , 1, i));
+    end loop;
+ 
+  for j in 2 .. varray.count loop
+    for k in 1 .. j-1 loop
+    
+    if varray(k) > varray(j) then
+        v_temp := varray(j);
+         
+        for z in reverse k .. j-1 loop
+         varray(z+1) := varray(z);
+        end loop;
+        
+        varray(k) := v_temp;
+    end if;
+    end loop;
+  end loop;
+  
+ for i in 1 .. varray.count loop
+    dbms_output.put(varray(i) || ' ');
+ end loop;
+ 
+ dbms_output.new_line;
+end;
+/
+
+-- 삽입 정렬(Insertion Sort)은 두번째 원소부터 시작하여 그 앞쪽 원소들과 비교하여 삽입할 위치를 지정하여 정렬하는 알고리즘
+-- varray 배열변수 5개 열 생성 후, 변수별 입력값(regexp_substr)을 할당하기
+-- 생성과 동시에 초기화 := array_t();
+```
+
+####  176. PL/SQL 알고리즘 문제 풀기 (순차탐색)
+```sql
+set serveroutput on
+set verify off
+accept p_num prompt '랜덤 숫자들의 갯수를 입력하세요'
+accept p_a   prompt '검색할 숫자를 입력하세요'
+
+declare
+    type array_t is varray(1000) of number(30);
+    array_s array_t := array_s();
+    v_cnt number(10) := &p_num;
+    v_a   number(10) := &p_a;
+    v_chk number(10) := 0;
+    
+begin
+    array_s.extend(v_cnt);
+    
+    for i in 1 .. v_cnt loop
+     array_s(i) := round(dbms_random.value(1,v_cnt));
+     dbms_output.put(array_s(i) || ',');
+    end loop;
+     dbms_output.new_line;
+     
+    for i in array_s.first .. array_s.last loop
+     if v_a=array_s(i) then
+        v_chk :=1;
+       dbms_output.put(i||'번째에서 숫자'||v_a|| '를 발견했습니다.');
+     end if;
+    end loop;
+    
+    dbms_output.new_line;
+    
+if v_chk = 0 then
+    dbms_output.put_line('숫자 발견하지 못했습니다.')
+end if;
+
+end;
+/
+
+-- array_s라는 이름의 배열변수, array_t라는 데이터 타입, varray(1000) 숫자형 데이터 1000개 변수 입력값
+-- array_s라는 이름의 배열변수 10개 생성 : array_s.extend(v_cnt);
+-- 검색할 숫자를 못 찾았을 때 사용할 변수 : v_chk
+-- 배열 array_s에 1부터 10 사이 숫자를 랜덤으로 채우고, 메모리 버퍼(buffer)에 올림 : dbms_random.value(1,v_cnt)
+```
+
+#### 177. PL/SQL로 알고리즘 문제 풀기 (몬테카를로 알고리즘)
+```sql
+set serveroutput on
+
+declare
+    v_cnt   number(10,2) :=0;
+    v_a     number(10,2);
+    v_b     number(10,2);
+    v_pi    number(10,2);
+
+begin
+        for i in 1 .. 1000000 loop
+         v_a := dbms_random.value(0,1);
+         v_b := dbms_random.value(0,1);
+         
+         if power(v_a,2) + power(v_b,2) <= 1 then
+            v_cnt := v_cnt +1;
+         end if;
+        end loop;
+        
+        v_pi := (v_cnt/1000000) * 4;
+        dbms_output.put_line(v_pi);
+end;
+/
+
+-- 정사각형 안에 들어가는 점의 좌표 (v_a, v_b)
+-- 몬테카를로 알고리즘 : 난수를 이용하여 특정값을 확률적으로 계산하는 알고리즘
+```
+
+#### 178. PL/SQL로 알고리즘 문제 풀기 (탐욕 알고리즘 greedy algorithm)
+```sql
+set serveroutput on
+set verify off
+accept p_money prompt '잔돈 전체 금액을 입력하세요'
+accept p_coin  prompt '잔돈 단위를 입력하세요'
+
+declare
+    v_money number(10) := &p_money;    
+    type array_t is varray(3) of number(10);
+    v_array array_t := array_t(&p_coin);
+    v_num array_t := array_t(0,0,0);
+
+begin
+    for i in 1 .. v_array.count loop
+     if v_money >= v_array(i) then
+      v_num(i) := trunc(v_money/v_array(i));
+      v_money := mod(v_money, v_array(i));
+     end if;
+     dbms_output.put(v_array(i)|| '원의 개수:'||v_num(i)|| '개,');
+     end loop;
+  dbms_output.new_line;   
+end;
+/
+
+-- 탐욕 알고리즘 : 매 순간마다 최선의 선택을 하며, 최종적인 해답을 구하는 알고리즘. 전체를 고려하지 않고 부분적으로 최적의 해답 구하는 것. 탐욕이라는 이름 그대로 당장의 큰 값부터 취하는 것.
+-- 배열 타입이란 몇 개의 데이터, 그 데이터의 유형을 지정하는 것
+-- 나눈 몫을 출력하는 함수 : trunc(a/b), 나눈 나머지를 출력하는 함수 : mod(a, b)
+```
+
+#### DAY 25. REVIEW
+Between basic SQL and advanced PL/SQL (Monte Carlo algorithm, Greedy algorithm)
