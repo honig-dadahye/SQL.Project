@@ -4670,3 +4670,427 @@ END;
 
 #### DAY 26. REVIEW
 Words learned from ADsP became the knowledge of SQL
+
+
+#### 187. SQL로 머신러닝 구현하기(신경망)
+콘크리트 강도를 높이려면 어떻게 재료를 조합해야 하는지, 즉 강도를 예측하는 인공신경망 구현
+```sql
+-- 1) 학습/훈련 데이터 테이블 생성
+Create table concrete
+( C_ID          NUMBER(10),
+  CEMENT        NUMBER(20,4),
+  SLAG	        NUMBER(20,4),
+  ASH	        NUMBER(20,4),
+  WATER	        NUMBER(20,4),
+  SUPERPLASTIC  NUMBER(20,4),
+  COARSEAGG	    NUMBER(20,4),
+  FINEAGG	    NUMBER(20,4),
+  AGE	        NUMBER(20,4),
+  STRENGTH      NUMBER(20,4)  );
+
+-- 2) 테스트 데이터 테이블 생성 ( 9 대 1 )
+Create  table concrete_train
+as
+    select  *
+    from    concrete
+    where   c_id < 931;
+    
+Create  table concrete_test
+as
+    select  *
+    from    concrete
+    where   c_id >= 931;   
+    
+-- 3) 머신러닝 모델 환경설정을 위한 정보가 들어있는 테이블 생성
+DROP TABLE SETTINGS_GLM;
+
+Create  table settings_glm
+as 
+Select  *
+    from table (dbms_data_mining.get_default_settings)
+    where setting_name like '%glm%';
+    
+Begin
+  INSERT INTO SETTINGS_GLM(SETTING_NAME, SETTING_VALUE)
+    VALUES (DBMS_DATA_MINING.ALGO_NAME, 
+            DBMS_DATA_MINING.ALGO_NEURAL_NETWORK);
+  
+  INSERT INTO SETTINGS_GLM (SETTING_NAME, SETTING_VALUE)
+    VALUES (DBMS_DATA_MINING.PREP_AUTO, DBMS_DATA_MINING.PREP_AUTO_ON);
+
+END;
+/
+
+-- 4)머신러닝 모델 생성
+BEGIN
+ DBMS_DATA_MINING.DROP_MODEL('MD_GLM_MODEL');
+END;
+/
+
+Begin
+    DBMS_DATA_MINING.CREATE_MODEL(
+      MODEL_NAME           => 'MD_GLM_MODEL',
+      MINING_FUNCTION      => DBMS_DATA_MINING.REGRESSION,
+      DATA_TABLE_NAME      => 'CONCRETE_TRAIN',
+      CASE_ID_COLUMN_NAME  => 'C_ID',
+      TARGET_COLUMN_NAME   => 'STRENGTH',
+      SETTINGS_TABLE_NAME  => 'SETTINGS_GLM');
+END;
+/
+
+-- 5) 신경망 예측값 & 상관관계(모델성능) 확인
+Select C_ID, Strength 실제값,
+       Round(prediction(MD_GLM_MODEL using *),2) 예측값
+From   concrete_test;  
+
+SELECT ROUND(CORR(PREDICTED_VALUE, STRENGTH),2) 상관관계
+  FROM (
+        SELECT C_ID, PREDICTION(MD_GLM_MODEL USING *) PREDICTED_VALUE,
+                     PREDICTION_PROBABILITY(MD_GLM_MODEL USING * ) PROB, STRENGTH
+        FROM CONCRETE_TEST
+      );
+
+-- 신경망 머신러닝 모델이란, 생물학적 뉴력이 서로간에 신호를 보내는 방식을 모방(노드 계층들로 구성됨, 개별 노드는 가중치와 임계값을 가짐)
+-- 머신러닝의 목표가 분류가 아닌 회귀(regression)이며, 분류와 다르게 실제값/예측값이 실수 형태의 숫자. 즉, 상관관계로 정확도/모델성능 확인
+-- 인공신경망(ANN) 또는 시뮬레이션 신경망(SNN). 딥러닝 알고리즘의 핵심
+-- naivebayes, 의사결정나무, random forest의 경우 dbms_data_mining.ALGO_NAME, '명명' 
+-- 인공신경망의 경우 환경설정 정보 테이블 생성 시, dbms_data_mining.ALGO_NAME, dbms_data_mining.ALGO_명명
+-- 훈련 테이블의 행을 대표할 수 있는 컬럼 : CASE_ID_COLUMN , 학습 데이터의 정답에 해당하는 컬럼 : TARGET_COLUMN
+-- ALL_MINING_MODEL_SETTINGS 에서 인공신경망 환경구성 정보 확인 가능(설정 명, 설정 값, 모델명)
+-- 신경망 모델의 은닉층의 갯수 ; NNET_HIDDEN_LAYERS
+```
+
+#### 188. SQL로 머신러닝 구현하기(신경망)
+```sql
+-- 3) 인공신경망 머신러닝 모델 환경설정
+DROP TABLE SETTINGS_GLM;
+
+Create  table settings_glm
+as 
+Select  *
+    from table (dbms_data_mining.get_default_settings)
+    where setting_name like '%glm%';
+    
+Begin
+  INSERT INTO SETTINGS_GLM(SETTING_NAME, SETTING_VALUE)
+    VALUES (DBMS_DATA_MINING.ALGO_NAME, 
+            DBMS_DATA_MINING.ALGO_NEURAL_NETWORK);
+  
+  INSERT INTO SETTINGS_GLM (SETTING_NAME, SETTING_VALUE)
+    VALUES (DBMS_DATA_MINING.PREP_AUTO, DBMS_DATA_MINING.PREP_AUTO_ON);
+
+  INSERT INTO SETTINGS_GLM (SETTING_NAME, SETTING_VALUE)
+    VALUES (DBMS_DATA_MINING.NNET_NODES_PER_LAYER, '100,100');
+
+END;
+/
+
+-- 4)머신러닝 모델 생성
+BEGIN
+ DBMS_DATA_MINING.DROP_MODEL('MD_GLM_MODEL');
+END;
+/
+
+BEGIN
+   DBMS_DATA_MINING.CREATE_MODEL(
+      MODEL_NAME          => 'MD_GLM_MODEL',
+      MINING_FUNCTION     => DBMS_DATA_MINING.REGRESSION,
+      DATA_TABLE_NAME      => 'CONCRETE_TRAIN',
+      CASE_ID_COLUMN_NAME => 'C_ID',
+      TARGET_COLUMN_NAME => 'STRENGTH',
+      SETTINGS_TABLE_NAME => 'SETTINGS_GLM');
+END;
+/
+
+
+-- 5) 신경망 예측값 & 상관관계(모델성능) 확인
+SELECT ROUND(CORR(PREDICTED_VALUE, STRENGTH),2) 상관관계
+  FROM (
+        SELECT C_ID, PREDICTION(MD_GLM_MODEL USING *) PREDICTED_VALUE,
+                     PREDICTION_PROBABILITY(MD_GLM_MODEL USING * ) PROB, STRENGTH
+        FROM CONCRETE_TEST
+      );
+      
+-- 인공신경망의 은닉층 수, 뉴런(노드) 수 확장하여 머신러닝 모델의 성능 개선
+```
+
+#### 189.SQL로 머신러닝 구현하기(신경망)
+accept 명령어로 입력값을 받아 예측값 출력
+```sql
+set serveroutput on
+set verify off
+
+accept p_cement prompt '시멘트의 총량을 입력하세요? 단위:kg (범위: 0~540) '
+accept p_salg prompt '슬래그 시멘트의 총량을 입력하세요? 단위:kg (범위: 0~360) '
+accept p_ash prompt '회분의 총량을 입력하세요? 단위:kg (예: 0~195) '
+accept p_water prompt '물의 총량을 입력하세요? 단위:kg (예: 0~137) '
+accept p_superplastic prompt '고성능 감수제의 총량을 입력하세요? 단위:kg (범위: 0~32) '
+accept p_coarseagg prompt '굵은 자갈의 총량을 입력하세요? 단위:kg (예: 0~1125)'
+accept p_fineagg prompt '잔 자갈의 총량을 입력하세요? 단위:kg (예: 0~594) '
+accept p_age prompt '숙성 기간을 입력하세요? 단위: day (예: 0~ 365) '
+
+declare  
+   v_pred    varchar2(20);
+
+Begin 
+with test_data as ( select  '&p_cement' CEMENT,
+                                   '&p_salg' SLAG, 
+                                   '&p_ash' ASH, 
+                                   '&p_water' WATER,
+                                   '&p_superplastic' SUPERPLASTIC,
+                                   '&p_coarseagg' COARSEAGG,
+                                   '&p_fineagg' FINEAGG,
+                                   '&p_age' AGE 
+                            from dual)
+
+SELECT PREDICTION (MD_GLM_MODEL   USING *) into v_pred
+  FROM test_data ;
+
+ dbms_output.put_line('머신러닝이 예측한 콘크리트 강도는 ' || round(v_pred,2) || '입니다. 테스트 데이터의 최대 강도는 82.6 입니다');
+
+END;
+/
+```
+
+#### 190. SQL로 머신러닝 구현하기 (Support Vector Machine)
+```sql
+-- 1) 유방암 데이터 저장 테이블 생성
+CREATE TABLE WISC_BC_DATA
+( ID	                 NUMBER(10),
+DIAGNOSIS	         VARCHAR2(5), 
+RADIUS_MEAN	         NUMBER(20,7),
+TEXTURE_MEAN	         NUMBER(20,7),
+PERIMETER_MEAN	         NUMBER(20,7),
+AREA_MEAN	         NUMBER(20,7),
+SMOOTHNESS_MEAN      NUMBER(20,7),
+COMPACTNESS_MEAN     NUMBER(20,7),
+CONCAVITY_MEAN	         NUMBER(20,7),
+POINTS_MEAN	         NUMBER(20,7),
+SYMMETRY_MEAN	         NUMBER(20,7),
+DIMENSION_MEAN	         NUMBER(20,7),
+RADIUS_SE	         NUMBER(20,7),
+TEXTURE_SE	         NUMBER(20,7),
+PERIMETER_SE	         NUMBER(20,7),
+AREA_SE	                      NUMBER(20,7),
+SMOOTHNESS_SE	         NUMBER(20,7),
+COMPACTNESS_SE	         NUMBER(20,7),
+CONCAVITY_SE	         NUMBER(20,7),
+POINTS_SE	         NUMBER(20,7),
+SYMMETRY_SE	         NUMBER(20,7),
+DIMENSION_SE	         NUMBER(20,7),
+RADIUS_WORST	         NUMBER(20,7),
+TEXTURE_WORST	         NUMBER(20,7),
+PERIMETER_WORST	         NUMBER(20,7),
+AREA_WORST	         NUMBER(20,7),
+SMOOTHNESS_WORST	 NUMBER(20,7),
+COMPACTNESS_WORST	 NUMBER(20,7),
+CONCAVITY_WORST            NUMBER(20,7),
+POINTS_WORST	         NUMBER(20,7),
+SYMMETRY_WORST	         NUMBER(20,7),
+DIMENSION_WORST          NUMBER(20,7) );
+
+-- 2) 학습/훈련 데이터 88%, 테스트 데이터 12%
+CREATE TABLE WISC_BC_DATA_TRAINING
+AS
+SELECT *
+   FROM WISC_BC_DATA 
+   WHERE ROWNUM < 501;
+   
+CREATE TABLE WISC_BC_DATA_TEST
+AS
+SELECT *
+  FROM WISC_BC_DATA
+MINUS
+SELECT *
+  FROM WISC_BC_DATA_TRAINING;   
+  
+-- 3) 머신러닝 모델 구성 정보 테이블 생성
+DROP TABLE DTSETTINGS;
+
+CREATE TABLE DTSETTINGS
+AS
+SELECT *
+  FROM TABLE (DBMS_DATA_MINING.GET_DEFAULT_SETTINGS)
+   WHERE SETTING_NAME LIKE '%GLM%';
+
+BEGIN
+
+   INSERT INTO DTSETTINGS
+     VALUES (DBMS_DATA_MINING.ALGO_NAME, 'ALGO_SUPPORT_VECTOR_MACHINES');
+
+   INSERT INTO DTSETTINGS
+     VALUES (DBMS_DATA_MINING.PREP_AUTO, 'ON');
+   INSERT INTO DTSETTINGS
+     VALUES (DBMS_DATA_MINING.SVMS_KERNEL_FUNCTION, 'SVMS_GAUSSIAN');
+
+   COMMIT;
+END;
+/
+
+-- 4) 서포트 벡터 머신 모델 생성
+BEGIN
+   DBMS_DATA_MINING.CREATE_MODEL (
+      MODEL_NAME            => 'WC_MODEL',
+      MINING_FUNCTION       => DBMS_DATA_MINING.CLASSIFICATION,
+      DATA_TABLE_NAME       => 'WISC_BC_DATA_TRAINING',
+      CASE_ID_COLUMN_NAME   => 'ID',
+      TARGET_COLUMN_NAME    => 'DIAGNOSIS',
+      SETTINGS_TABLE_NAME   => 'DTSETTINGS');
+END;
+/
+
+-- 5) 머신러닝 모델의 성능 정보 확인
+-- 훈련된 서포트백터 머신모델의 성능을 테스트 데이터로 확인한 쿼리결과를 view로 생성. 모델 정확도 확인 시 사용됨
+CREATE OR REPLACE VIEW VIEW_WISC_BC_DATA_TEST
+AS
+SELECT ID, DIAGNOSIS, 
+          PREDICTION(WC_MODEL USING *) PREDICTED_VALUE,
+          PREDICTION_PROBABILITY(WC_MODEL USING * ) PROBABILITY
+ FROM WISC_BC_DATA_TEST;
+
+-- 6) 예측값 확인 & 머신러닝 모델의 성능 확인
+SELECT ID 환자번호, DIAGNOSIS 실제값, PREDICTED_VALUE 예측값, PROBABILITY 예측확률
+  FROM VIEW_WISC_BC_DATA_TEST;
+
+SET  SERVEROUTPUT ON
+
+DECLARE
+   V_ACCURACY NUMBER;
+BEGIN
+   DBMS_DATA_MINING.COMPUTE_CONFUSION_MATRIX (
+      ACCURACY => V_ACCURACY,
+      APPLY_RESULT_TABLE_NAME => 'VIEW_WISC_BC_DATA_TEST',
+      TARGET_TABLE_NAME => 'WISC_BC_DATA_TEST',
+      CASE_ID_COLUMN_NAME => 'ID',
+      TARGET_COLUMN_NAME => 'DIAGNOSIS',
+      CONFUSION_MATRIX_TABLE_NAME => 'WC_DATA_TEST_MATRIX',
+      SCORE_COLUMN_NAME => 'PREDICTED_VALUE',
+      SCORE_CRITERION_COLUMN_NAME => 'PROBABILITY',
+      COST_MATRIX_TABLE_NAME => NULL,
+      APPLY_RESULT_SCHEMA_NAME => NULL,
+      TARGET_SCHEMA_NAME => NULL,
+      COST_MATRIX_SCHEMA_NAME => NULL,
+      SCORE_CRITERION_TYPE => 'PROBABILITY');
+   DBMS_OUTPUT.PUT_LINE('**** MODEL ACCURACY ****: ' || ROUND(V_ACCURACY,4));
+END;
+/
+
+-- 서포트백터 머신 알고리즘(SVM) : 분류를 위한 기준 선을 정의하는 지도학습 모델
+-- 최적의 결정 경계(Decision Boundary) : 데이터 군으로부터 최대한 멀리 떨어진 결정 경계
+-- 마진 : 결정 경계와 서포트 벡터(결정 경계와 가까이 있는 데이터 포인트들) 사이의 거리
+-- 서포트백터 머신러닝 모델의 커널 SVMS_GAUSSIAN, 커널 트릭 : 데이터 구분용 직선, outlier 쓸 수 없을 때 차원을 바꿔 구분선 긋기
+-- Rownum 사용법 : 조회된 순서대로 순번을 매긴다. order by 사용 시, row_number() 권장
+-- Apply_Result_Table_Name 매개변수 : 모델 예측값(prediction)과 예측확률(probability) 데이터를 볼 수 있는 view 지정
+```
+
+#### 191. SQL로 머신러닝 구현하기 (Support Vector Machine)
+서포트벡터 머신러닝 모델의 커널(엔진) 변경하는 방법 구현
+```sql
+-- 3) 머신러닝 모델 구성 정보 테이블 생성
+DROP TABLE DTSETTINGS;
+
+CREATE TABLE DTSETTINGS
+AS
+SELECT *
+  FROM TABLE (DBMS_DATA_MINING.GET_DEFAULT_SETTINGS)
+   WHERE SETTING_NAME LIKE '%GLM%';
+
+BEGIN
+
+   INSERT INTO DTSETTINGS
+     VALUES (DBMS_DATA_MINING.ALGO_NAME, 'ALGO_SUPPORT_VECTOR_MACHINES');
+
+   INSERT INTO DTSETTINGS
+     VALUES (DBMS_DATA_MINING.PREP_AUTO, 'ON');
+   INSERT INTO DTSETTINGS
+     VALUES (DBMS_DATA_MINING.SVMS_KERNEL_FUNCTION, 'SVMS_LINEAR');
+
+   COMMIT;
+END;
+/
+
+-- 4) 서포트 벡터 머신 모델 생성
+BEGIN
+  DBMS_DATA_MINING.DROP_MODEL('WC_MODEL');
+END;
+/
+
+BEGIN
+   DBMS_DATA_MINING.CREATE_MODEL (
+      MODEL_NAME            => 'WC_MODEL',
+      MINING_FUNCTION       => DBMS_DATA_MINING.CLASSIFICATION,
+      DATA_TABLE_NAME       => 'WISC_BC_DATA_TRAINING',
+      CASE_ID_COLUMN_NAME   => 'ID',
+      TARGET_COLUMN_NAME    => 'DIAGNOSIS',
+      SETTINGS_TABLE_NAME   => 'DTSETTINGS');
+END;
+/
+
+-- 5) 예측값 확인 & 머신러닝 모델의 성능 확인
+DROP TABLE WC_DATA_TEST_MATRIX;
+      
+CREATE OR REPLACE VIEW VIEW_WISC_BC_DATA_TEST
+AS
+SELECT ID, DIAGNOSIS, 
+          PREDICTION(WC_MODEL USING *) PREDICTED_VALUE,
+          PREDICTION_PROBABILITY(WC_MODEL USING * ) PROBABILITY
+ FROM WISC_BC_DATA_TEST;
+
+DECLARE
+   V_ACCURACY NUMBER;
+BEGIN
+   DBMS_DATA_MINING.COMPUTE_CONFUSION_MATRIX (
+      ACCURACY => V_ACCURACY,
+      APPLY_RESULT_TABLE_NAME => 'VIEW_WISC_BC_DATA_TEST',
+      TARGET_TABLE_NAME => 'WISC_BC_DATA_TEST',
+      CASE_ID_COLUMN_NAME => 'ID',
+      TARGET_COLUMN_NAME => 'DIAGNOSIS',
+      CONFUSION_MATRIX_TABLE_NAME => 'WC_DATA_TEST_MATRIX',
+      SCORE_COLUMN_NAME => 'PREDICTED_VALUE',
+      SCORE_CRITERION_COLUMN_NAME => 'PROBABILITY',
+      COST_MATRIX_TABLE_NAME => NULL,
+      APPLY_RESULT_SCHEMA_NAME => NULL,
+      TARGET_SCHEMA_NAME => NULL,
+      COST_MATRIX_SCHEMA_NAME => NULL,
+      SCORE_CRITERION_TYPE => 'PROBABILITY');
+   DBMS_OUTPUT.PUT_LINE('**** MODEL ACCURACY ****: ' || ROUND(V_ACCURACY,4));
+END;
+/
+```
+
+#### 192. SQL로 머신러닝 구현하기 (Support Vector Machine)
+accept 명령어로 머신러닝 모델 입력값을 받아 PL/SQL 프로그래밍 코드 작성
+```sql
+SET SERVEROUTPUT ON
+SET VERIFY OFF
+
+ACCEPT P_ID PROMPT '환자 번호를 입력하세요~ (예: 845636)'
+
+DECLARE  
+   V_PRED    VARCHAR2(20);
+   V_PROB    NUMBER(10,2);
+
+BEGIN
+
+SELECT PREDICTION (WC_MODEL USING *),
+          PREDICTION_PROBABILITY(WC_MODEL  USING * )  INTO V_PRED, V_PROB
+  FROM WISC_BC_DATA_TEST
+  WHERE ID = '&P_ID';
+
+ IF V_PRED ='M' THEN 
+
+   DBMS_OUTPUT.PUT_LINE('머신러닝이 예측한 결과: 유방암 환자입니다. 유방암일 확률은 ' || ROUND(V_PROB,2) * 100 || '%입니다');
+
+ ELSE 
+    DBMS_OUTPUT.PUT_LINE('머신러닝이 예측한 결과: 유방암 환자가 아닙니다. 유방암 환자가 아닐 확률은 ' || ROUND(V_PROB,2) * 100 || '%입니다');
+
+ END IF;
+
+END;
+/
+
+-- 환자번호 외부 매개변수 P_ID, 예측값과 예측확률 v_pred v_prob
+```
+
+#### DAY 27. REVIEW
+2nd reivew with much more detailed description
