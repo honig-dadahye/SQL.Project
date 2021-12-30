@@ -5554,3 +5554,183 @@ SELECT A.ATTRIBUTE_SUBNAME as ANTECEDENT,
 
 #### DAY 29. REVIEW
 ASSOCIATION RULES : APRIORI Algorithm for Product Recommendation!!!
+
+
+#### 199. SQL로 머신러닝 구현하기 (K-MEANS)
+비지도 학습인 K-MEANS 머신러닝 알고리즘으로 토마토가 어느 클래스에 속하는지 분류(CLUSTERING)
+```sql
+-- 1) 머신러닝 훈련/학습 테이블 생성
+CREATE TABLE FRUIT
+(F_ID     NUMBER(10),
+ F_NAME   VARCHAR2(10),
+ SWEET    NUMBER(10),
+ CRISPY   NUMBER(10),
+ F_CLASS  VARCHAR2(10) );
+
+INSERT INTO FRUIT VALUES( 1, '사과', 10, 9, '과일');
+INSERT INTO FRUIT VALUES( 2, '베이컨', 1, 4, '단백질');
+INSERT INTO FRUIT VALUES( 3, '바나나', 10, 1, '과일');
+INSERT INTO FRUIT VALUES( 4, '당근', 7, 10, '채소');
+INSERT INTO FRUIT VALUES( 5, '셀러리', 3, 10, '채소');
+INSERT INTO FRUIT VALUES( 6, '치즈', 1, 1, '단백질');
+INSERT INTO FRUIT VALUES( 7, '토마토', 6, 7, NULL);
+COMMIT;
+
+-- 2) 머신러닝 환경구성 정보를 담은 테이블 생성
+CREATE TABLE SETTINGS_KM1
+AS
+SELECT *
+   FROM TABLE (DBMS_DATA_MINING.GET_DEFAULT_SETTINGS)
+   WHERE SETTING_NAME LIKE '%GLM%';
+
+BEGIN
+
+   INSERT INTO SETTINGS_KM1
+      VALUES (DBMS_DATA_MINING.ALGO_NAME, 'ALGO_KMEANS');
+
+   INSERT INTO SETTINGS_KM1
+      VALUES (DBMS_DATA_MINING.PREP_AUTO, 'ON');
+
+    INSERT INTO SETTINGS_KM1
+      VALUES (DBMS_DATA_MINING.CLUS_NUM_CLUSTERS, 3);
+
+   COMMIT;
+
+END;
+/
+
+-- 3) 머신러닝 모델 생성 & 군집화 진행
+BEGIN 
+
+   DBMS_DATA_MINING.CREATE_MODEL(
+      MODEL_NAME            => 'MD_KM_MODEL1',
+      MINING_FUNCTION       => DBMS_DATA_MINING.CLUSTERING,
+      DATA_TABLE_NAME       => 'FRUIT',
+      CASE_ID_COLUMN_NAME   => 'F_ID',
+      TARGET_COLUMN_NAME    =>  NULL,
+      SETTINGS_TABLE_NAME   => 'SETTINGS_KM1');
+END;
+/
+
+BEGIN
+   DBMS_DATA_MINING.APPLY (MODEL_NAME => 'MD_KM_MODEL1',
+                                          DATA_TABLE_NAME => 'FRUIT',
+                                          CASE_ID_COLUMN_NAME => 'F_ID',
+                                          RESULT_TABLE_NAME => 'KMEANS_RESULT1');
+END;
+/
+
+-- 4) K-MEANS 머신러닝 모델의 분류 CLUSTERING 결과 확인
+SELECT T2.F_NAME,
+       T2.F_CLASS,
+       T1.CLUSTER_ID,
+       T1.PROBABILITY,
+       T2.SWEET,
+       T2.CRISPY
+  FROM (SELECT F_ID, CLUSTER_ID, PROBABILITY
+              FROM (SELECT T.*,
+                           MAX (PROBABILITY) OVER (PARTITION BY F_ID ORDER BY PROBABILITY DESC) MAXP
+                     FROM  KMEANS_RESULT1 T)
+              WHERE MAXP = PROBABILITY) T1, 
+        FRUIT T2
+  WHERE T1.F_ID = T2.F_ID 
+  ORDER BY CLUSTER_ID;
+
+-- 비지도 학습이란, 훈련/학습 데이터는 있으나 정답 라벨이 없음. 지도학습 CLASSIFICATION이 아니라, 비지도 학습 CLUSTERING.
+-- k-MEANS 알고리즘 : 유클리드 거리 공식을 이용해 가장 가까운 거리에 있는 데이터로 판단해야할 데이터 분류(CLUSTERING)
+-- 유클리드 거리 공식의 중요성 : 거리 DISTANCE가 유사도 SIMILARITY를 의미하기 때문 "군집화"
+-- 연관성 규칙 분석에서 연관성의 개수와, K-MEANS 분석에서 클러스터 군집의 개수!
+-- 머신러닝 모델 생성 시, 훈련 데이터로 군집화한 데이터를 저장할 테이블 저장해야 함 RESULT_TABLE_NAME => 'KMEANS_RESULT1'
+-- 훈련테이블 FRUIT T2에서 가져온 컬럼 : F_NAME, F_CLASS, SWEET, CRISPY
+-- F_ID로 훈련테이블 FRUIT T2 와 군집화테이블 T1 조인 실행
+-- MAX_PROBABILITY : 인스턴스별 예측값(거리값)이 가장 높은 경우의 예측값(거리값)
+```
+
+#### 200. SQL로 머신러닝 구현하기 (K-MEANS)
+미국 시카고 지역의 범죄 발생지의 위도, 경도 데이터를 이용하여 순찰 지역의 범위를 지정
+```sql
+-- 1) 머신러닝 훈련/학습 테이블 생성
+CREATE TABLE CHICAGO_CRIME
+(C_ID	         NUMBER(10),
+ CASE_NUMBER     VARCHAR2(10),
+ CRIME_DATE      VARCHAR2(40), 
+ PRIMARY_TYPE    VARCHAR2(40),
+ DESCRIPTION     VARCHAR2(80),
+ LOCATION_DESCRIPTION   VARCHAR2(50),	
+ ARREST_YN       VARCHAR2(10),
+ DOMESTIC        VARCHAR2(10),
+ FBI_CODE        VARCHAR2(10),
+ CRIME_YEAR      VARCHAR2(10),	
+ LATITUDE        NUMBER(20,10),	
+ LONGITUDE       NUMBER(20,10) 
+);
+
+-- 2) 머신러닝 환경설정 정보를 담은 테이블 생성
+CREATE TABLE SETTINGS_KM2
+AS
+SELECT *
+   FROM TABLE (DBMS_DATA_MINING.GET_DEFAULT_SETTINGS)
+   WHERE SETTING_NAME LIKE '%GLM%';
+
+BEGIN
+
+   INSERT INTO SETTINGS_KM2
+      VALUES (DBMS_DATA_MINING.ALGO_NAME, 'ALGO_KMEANS');
+
+   INSERT INTO SETTINGS_KM2
+      VALUES (DBMS_DATA_MINING.PREP_AUTO, 'ON');
+
+    INSERT INTO SETTINGS_KM2
+      VALUES (DBMS_DATA_MINING.CLUS_NUM_CLUSTERS, 14);
+
+   COMMIT;
+
+END;
+/
+
+-- 3) 머신러닝 모델 생성 & 군집화 진행
+CREATE OR REPLACE VIEW VW_CHICAGO_CRIME
+AS 
+  SELECT C_ID, LATITUDE, LONGITUDE
+    FROM CHICAGO_CRIME;
+
+BEGIN 
+
+   DBMS_DATA_MINING.CREATE_MODEL(
+      MODEL_NAME            => 'MD_GLM_MODEL2',
+      MINING_FUNCTION       =>  DBMS_DATA_MINING.CLUSTERING,
+      DATA_TABLE_NAME       => 'VW_CHICAGO_CRIME',
+      CASE_ID_COLUMN_NAME   => 'C_ID',
+      TARGET_COLUMN_NAME    =>  NULL,
+      SETTINGS_TABLE_NAME   => 'SETTINGS_KM2');
+END;
+/
+
+BEGIN
+   DBMS_DATA_MINING.APPLY (MODEL_NAME => 'MD_GLM_MODEL2',
+                                         DATA_TABLE_NAME => 'VW_CHICAGO_CRIME',
+                                         CASE_ID_COLUMN_NAME => 'C_ID',
+                                         RESULT_TABLE_NAME => 'KMEANS_RESULT2');
+END;
+/
+
+-- 4) K-MEANS 머신러닝 모델의 분류 CLUSTERING 결과 확인
+SELECT T1.C_ID,
+       T1.CLUSTER_ID,
+       T1.PROBABILITY,
+       T2.LATITUDE,
+       T2.LONGITUDE
+  FROM (SELECT C_ID, CLUSTER_ID, PROBABILITY
+         FROM (SELECT T.*,
+                      MAX (PROBABILITY) OVER (PARTITION BY C_ID ORDER BY PROBABILITY DESC) MAXP
+                FROM KMEANS_RESULT2 T)
+         WHERE MAXP = PROBABILITY) T1, CHICAGO_CRIME T2
+  WHERE T1.C_ID = T2.C_ID ORDER BY CLUSTER_ID;
+
+
+-- 훈련 테이블에서 위도, 경도 컬럼 추출하고 군집화 결과 테이블에서 식별자, 예측값(거리값) 추출
+-- CLUSTERING 군집화 개수는 머신러닝 환경설정 테이블 생성 시, VALUES(DBMS_DATA_MINING.CLUS_NUM_CLUSTERS, 14)로 값 지정
+```
+
+#### DAY 30. REVIEW 🙌✨🎉
+NEXT STEP IS KAGGLE ONLY :
