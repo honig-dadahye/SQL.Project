@@ -425,6 +425,7 @@ is null : null 은 알 수 없는 값이기 때문에 =  null, != null 등 이�
 3) 논리 연산자 : - AND, OR, NOT
 
 
+### PART 2 초급. SQL 기초 다지기
 #### 016. 대소문자 변환 함수 배우기 (UPPER, LOWER, INITCAP)
 대문자, 소문자, 첫 철자만 대문자로 출력
 
@@ -1229,6 +1230,8 @@ FROM
 #### DAY 08.REVIEW
 Recap! Distinction between what i may know and what i really know
 
+
+### PART 3 중급. SQL 실력 다지기
 #### 056. 출력되는 행 제한하기 (ROWNUM)
 사원번호, 이름, 직업, 월급을 상단 5개 행만 출력
 
@@ -2580,6 +2583,7 @@ WHERE NUM =1000000;
 Deep and Concise Questions!
 
 
+### PART 4 활용. SQL 응용 다지기
 #### 126. 엑셀 데이터를 DB에 로드하는 방법
 CSV파일을 오라클 데이터 베이스에 입력
 ```sql
@@ -4049,6 +4053,7 @@ end;
 Between basic SQL and advanced PL/SQL (Monte Carlo algorithm, Greedy algorithm)
 
 
+### PART 5 실무. SQL 실무 다지기
 #### 179. SQL로 머신러닝 구현하기(NAIVEBAUES)
 dbms_data_mining 패키지로 나이브 베이즈 러닝머신 모델 생성
 ```sql
@@ -5094,3 +5099,300 @@ END;
 
 #### DAY 27. REVIEW
 2nd reivew with much more detailed description
+
+#### 193. SQL로 머신러닝 구현하기 (regression)
+합격기준에 가장 큰 영향을 주는 변수가 academic or sports or music인지 확인하는 회귀분석
+```sql
+-- 1) 학생점수 테이블 생성
+CREATE TABLE student_score (
+    st_id      NUMBER(10),
+    academic   NUMBER(20, 8),
+    sports     NUMBER(30, 10),
+    music      NUMBER(30, 10),
+    acceptance NUMBER(30, 10)
+);
+
+-- 2) 학습/훈련 데이터와 테스트 데이터 테이블 생성 ( 9 대 1 )
+CREATE TABLE STUDENT_SCORE_TRAINING
+AS
+   SELECT *
+     FROM STUDENT_SCORE
+     WHERE ST_ID < 181;
+
+CREATE TABLE STUDENT_SCORE_TEST
+AS
+   SELECT *
+     FROM STUDENT_SCORE
+     WHERE ST_ID >= 181;
+     
+-- 3) 회귀분석 머신러닝 모델 환경정보를 담은 구성 테이블 생성
+DROP TABLE SETTINGS_REG1;
+
+CREATE TABLE SETTINGS_REG1
+AS
+SELECT *
+    FROM TABLE (DBMS_DATA_MINING.GET_DEFAULT_SETTINGS)
+    WHERE SETTING_NAME LIKE '%GLM%';
+    
+BEGIN
+    INSERT INTO SETTINGS_REG1
+    VALUES (DBMS_DATA_MINING.ALGO_NAME, 'ALGO_GENERALIZED_LINEAR_MODEL');
+ 
+    INSERT INTO SETTINGS_REG1
+    VALUES (DBMS_DATA_MINING.PREP_SCALE_2DNUM, 'PREP_SCALE_RANGE');
+    
+COMMIT;
+END;
+/
+
+-- 4) 회귀분석 머신러닝 모델 생성
+BEGIN
+ DBMS_DATA_MINING.DROP_MODEL('MD_REG_MODEL1');
+END;
+/
+
+BEGIN 
+   DBMS_DATA_MINING.CREATE_MODEL(
+      MODEL_NAME            => 'MD_REG_MODEL1',
+      MINING_FUNCTION       => DBMS_DATA_MINING.REGRESSION,
+      DATA_TABLE_NAME       => 'STUDENT_SCORE_TRAINING',
+      CASE_ID_COLUMN_NAME   => 'ST_ID',
+      TARGET_COLUMN_NAME    => 'ACCEPTANCE',
+      SETTINGS_TABLE_NAME   => 'SETTINGS_REG1');
+END;
+/
+
+-- 5) 머신러닝 모델 예측값 확인 & 결정계수 r 스퀘어 값 확인
+SELECT ST_ID 학생번호, ACADEMIC 학과점수, ROUND(MUSIC,2) 음악점수 , SPORTS 체육점수, 
+       ROUND(ACCEPTANCE,2) AS 실제점수, ROUND(MODEL_PREDICT_RESPONSE,2) AS 예측점수
+FROM  ( 
+        SELECT T.*,
+               PREDICTION (MD_REG_MODEL1 USING *) MODEL_PREDICT_RESPONSE
+         FROM  STUDENT_SCORE_TEST T
+      );
+
+SELECT *
+  FROM TABLE(DBMS_DATA_MINING.GET_MODEL_DETAILS_GLOBAL(MODEL_NAME =>  'MD_REG_MODEL1'))
+  WHERE GLOBAL_DETAIL_NAME IN ('R_SQ','ADJUSTED_R_SQUARE');
+  
+-- 6) 입학점수에 가장 영향력이 높은 변수 확인
+SELECT ATTRIBUTE_NAME, COEFFICIENT
+  FROM TABLE (DBMS_DATA_MINING.GET_MODEL_DETAILS_GLM ('MD_REG_MODEL1'));
+
+
+-- 회귀 분석 : '연속형 변수'들에 대해 두 변수간(독립변인ATTRIBUTE 과 종속변인) 영향도(COEFFICIENT)를 분석 방법
+-- 회귀 분석을 위한 알고리즘 명은 ALGO_GENERALIZED_LINEAR_MODEL 설정 (일반화된 선형 회귀 모델)
+-- 훈련 데이터를 0~1사이의 숫자로 변환하여 정규화 : 머신러닝 모델 구성테이블에서 PREP_SCALE_2DNUM값을 PREP_SCALE_RANGE로 설정
+-- 머신러닝 모델의 목표 : 분류(CLASSIFICATION) 회귀(REGRESSION)_ 항목 선택(분류)가 아닌 실수 형태의 예측값 도출
+-- 훈련 데이터 테이블로 머신러닝 모델 생성 후, 테스트 데이터 테이블로 머신러닝 예측값 & 성능 확인
+-- 결정계수란 회귀분석 모델이 학습한 데이터를 얼마나 잘 설명하는지 나타내는 지표. 0~1사이로 출력되며 1에 가까울수록 설명력이 높음
+```
+
+#### 194. SQL로 머신러닝 구현하기 (REGRESSION)
+의료비에 영향을 미치는 변수을 예측하는 회귀분석 모델 구현
+```sql
+-- 1) 의료비 테이블 생성
+CREATE TABLE INSURANCE
+( ID         NUMBER(10),
+  AGE       NUMBER(3),
+  SEX        VARCHAR2(10),
+  BMI        NUMBER(10,2),
+  CHILDREN  NUMBER(2),
+  SMOKER    VARCHAR2(10),
+  REGION    VARCHAR2(20), 
+  EXPENSES  NUMBER(10,2) );
+
+-- 2) 학습/훈련 데이터 테이블과 테스트 데이터 테이블 생성
+CREATE TABLE INSURANCE_TRAINING
+AS
+   SELECT *
+     FROM INSURANCE
+     WHERE ID < 1114;
+
+CREATE TABLE INSURANCE_TEST
+AS
+   SELECT *
+     FROM INSURANCE
+     WHERE ID >= 1114;
+
+-- 3) 회귀분석 머신러닝 모델 환경정보를 담은 구성 테이블 생성
+CREATE TABLE SETTINGS_REG2
+AS
+SELECT *
+    FROM TABLE (DBMS_DATA_MINING.GET_DEFAULT_SETTINGS)
+    WHERE SETTING_NAME LIKE '%GLM%';
+    
+BEGIN
+    INSERT INTO SETTINGS_REG2
+    VALUES (DBMS_DATA_MINING.ALGO_NAME, 'ALGO_GENERALIZED_LINEAR_MODEL');
+ 
+    INSERT INTO SETTINGS_REG2
+    VALUES (DBMS_DATA_MINING.PREP_AUTO, 'ON');
+    
+COMMIT;
+END;
+/
+
+-- 4) 회귀분석 머신러닝 모델 생성
+BEGIN 
+
+   DBMS_DATA_MINING.CREATE_MODEL(
+      MODEL_NAME            => 'MD_REG_MODEL2',
+      MINING_FUNCTION       => DBMS_DATA_MINING.REGRESSION,
+      DATA_TABLE_NAME       => 'INSURANCE_TRAINING',
+      CASE_ID_COLUMN_NAME   => 'ID',
+      TARGET_COLUMN_NAME    => 'EXPENSES',
+      SETTINGS_TABLE_NAME   => 'SETTINGS_REG2');
+END;
+/
+
+-- 5) 머신러닝 모델 예측값 확인 & 결정계수 r 스퀘어 값 확인
+SELECT ID, AGE, SEX, EXPENSES, 
+       ROUND(PREDICTION (MD_REG_MODEL2 USING *),2) MODEL_PREDICT_RESPONSE
+  FROM INSURANCE_TEST T;
+  
+SELECT GLOBAL_DETAIL_NAME, ROUND(GLOBAL_DETAIL_VALUE,3)
+  FROM
+  TABLE(DBMS_DATA_MINING.GET_MODEL_DETAILS_GLOBAL(MODEL_NAME =>'MD_REG_MODEL2'))
+  WHERE  GLOBAL_DETAIL_NAME IN ('R_SQ','ADJUSTED_R_SQUARE');  
+  
+-- 6) 입학점수에 가장 영향력이 높은 변수 확인(회귀계수)
+SELECT ATTRIBUTE_NAME, ATTRIBUTE_VALUE, ROUND(COEFFICIENT)
+  FROM TABLE (DBMS_DATA_MINING.GET_MODEL_DETAILS_GLM ('MD_REG_MODEL2'));
+
+-- 회귀분석의 결정계수 R : 머신러닝 모델의 설명력, 회귀계수 COEFFICIENT : 가장 큰 영향을 주는 변수
+-- 회귀계수 값이 가장 클 수록, 종속변수에 가장 큰 영향을 미치는 독립변수
+```
+
+#### 195. SQL로 머신러닝 구현하기(파생변수 생성)
+보험회사 보험료 산정을 위해 의료비 예측하는 회귀분석 모델, 파생변수 생성하여 설명력 향상
+```sql
+-- 1) 파생변수 생성
+ALTER TABLE INSURANCE
+    ADD BMI30 NUMBER(10);
+    
+UPDATE INSURANCE I
+    SET BMI30 = (SELECT CASE WHEN BMI >= 30 AND SMOKER = 'yes'
+                             THEN 1 ELSE 0 END
+                        FROM INSURANCE S
+                        WHERE S.ROWID = I.ROWID);
+
+COMMIT;                        
+
+-- 2) 학습/훈련 데이터 테이블과 테스트 데이터 테이블 생성 ( 9 대 1 )
+DROP TABLE INSURANCE_TRAINING; 
+
+CREATE TABLE INSURANCE_TRAINING
+AS
+   SELECT *
+     FROM INSURANCE
+     WHERE ID < 1114;
+
+DROP TABLE INSURANCE_TEST;
+
+CREATE TABLE INSURANCE_TEST
+AS
+   SELECT *
+     FROM INSURANCE
+    WHERE ID >= 1114;
+
+-- 3) 머신러닝 모델 생성
+-- 회귀계수가 가장 높았던 변수와 새로운 변수의 조합으로 파생변수 생성
+BEGIN
+  DBMS_DATA_MINING.DROP_MODEL('MD_REG_MODEL3');
+END;
+/
+
+BEGIN 
+
+   DBMS_DATA_MINING.CREATE_MODEL(
+      MODEL_NAME            => 'MD_REG_MODEL3',
+      MINING_FUNCTION       => DBMS_DATA_MINING.REGRESSION,
+      DATA_TABLE_NAME       => 'INSURANCE_TRAINING',
+      CASE_ID_COLUMN_NAME   => 'ID',
+      TARGET_COLUMN_NAME    => 'EXPENSES',
+      SETTINGS_TABLE_NAME   => 'SETTINGS_REG2');
+END;
+/
+
+-- 5) 머신러닝 모델 예측값 확인 & 결정계수 r 스퀘어 값 확인
+SELECT GLOBAL_DETAIL_NAME, ROUND(GLOBAL_DETAIL_VALUE,3)
+  FROM
+  TABLE(DBMS_DATA_MINING.GET_MODEL_DETAILS_GLOBAL(MODEL_NAME =>'MD_REG_MODEL3'))
+  WHERE  GLOBAL_DETAIL_NAME IN ('R_SQ','ADJUSTED_R_SQUARE');
+
+-- 6) 입학점수에 가장 영향력이 높은 변수 확인(회귀계수)
+SELECT ATTRIBUTE_NAME, ATTRIBUTE_VALUE, ROUND(COEFFICIENT)
+  FROM 
+  TABLE (DBMS_DATA_MINING.GET_MODEL_DETAILS_GLM ('MD_REG_MODEL3'));
+  
+-- 파생변수 : 새롭게 추가한 파생 컬럼 (위 예제에서는 비만도 데이터)
+-- 이미 머신러닝 모델 환경설정 정보를 담은 테이블 생성했으며, 파생변수 생성 시 달라질 조건(목표,식별컬럼,종속컬럼 등)을 없음
+-- 단, 새로운 파생변수 추가에 따른 훈련 테이블이 변경되었으므로, 머신러니 모델을 새롭게 생성해야 함
+```
+
+#### 196. SQL로 머신러닝 구현하기(파생변수 생성)
+보험회사 보험료 산정을 위해 의료비 예측하는 회귀분석 모델, 파생변수 생성하여 설명력 향상
+```sql
+-- 1) 파생변수 생성
+ALTER TABLE INSURANCE
+    ADD AGE2 NUMBER(10);
+    
+UPDATE INSURANCE 
+    SET AGE2 = AGE * AGE;
+    
+COMMIT;                        
+
+-- 2) 학습/훈련 데이터 테이블과 테스트 데이터 테이블 생성 ( 9 대 1 )
+DROP TABLE INSURANCE_TRAINING; 
+
+CREATE TABLE INSURANCE_TRAINING
+AS
+   SELECT *
+     FROM INSURANCE
+     WHERE ID < 1114;
+
+DROP TABLE INSURANCE_TEST;
+
+CREATE TABLE INSURANCE_TEST
+AS
+   SELECT *
+     FROM INSURANCE
+    WHERE ID >= 1114;
+
+-- 3) 머신러닝 모델 생성
+-- 회귀계수가 가장 높았던 변수와 새로운 변수의 조합으로 파생변수 생성
+BEGIN
+  DBMS_DATA_MINING.DROP_MODEL('MD_REG_MODEL4');
+END;
+/
+
+BEGIN 
+
+   DBMS_DATA_MINING.CREATE_MODEL(
+      MODEL_NAME            => 'MD_REG_MODEL4',
+      MINING_FUNCTION       => DBMS_DATA_MINING.REGRESSION,
+      DATA_TABLE_NAME       => 'INSURANCE_TRAINING',
+      CASE_ID_COLUMN_NAME   => 'ID',
+      TARGET_COLUMN_NAME    => 'EXPENSES',
+      SETTINGS_TABLE_NAME   => 'SETTINGS_REG2');
+END;
+/
+
+-- 5) 머신러닝 모델 예측값 확인 & 결정계수 r 스퀘어 값 확인
+SELECT GLOBAL_DETAIL_NAME, ROUND(GLOBAL_DETAIL_VALUE,3)
+  FROM
+  TABLE(DBMS_DATA_MINING.GET_MODEL_DETAILS_GLOBAL(MODEL_NAME =>'MD_REG_MODEL4'))
+  WHERE  GLOBAL_DETAIL_NAME IN ('R_SQ','ADJUSTED_R_SQUARE');
+
+-- 6) 입학점수에 가장 영향력이 높은 변수 확인(회귀계수)
+SELECT ATTRIBUTE_NAME, ATTRIBUTE_VALUE, ROUND(COEFFICIENT)
+  FROM 
+  TABLE (DBMS_DATA_MINING.GET_MODEL_DETAILS_GLM ('MD_REG_MODEL4'));
+  
+-- 결정계수 값 증가에 따라 AGE2 나이의 증가는 의료비 증가에 영향을 미친다.  
+-- 단, 증가량이 아주 소량이며, 회귀계수 값도 현저히 낮으니 결정적인 독립변수라고 할 수 없다.
+```
+
+#### DAY 28. REVIEW
+SOOOOOOOOO thrilled to have analytics projects nearly close to business
